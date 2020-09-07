@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html>
+<head>
+	<title>{% block title %}PacerTracker{% endblock %}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    {% block head_style %}
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet" media="screen">
+		
+	<link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:700,400,300" rel="stylesheet" type="text/css">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <link href="{% static "pacertracker/css/pacertracker.css" %}" rel="stylesheet" type="text/css">
+    {% endblock head_style %}
+    
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="{% static "pacertracker/js/jquery.typing-0.3.0.js" %}"></script>
+    <script src="{% static "pacertracker/js/respond.src.js" %}"></script>
+
+    {% block head_scripts %}
+    {% endblock head_scripts %}
+    
+    {% block head_end %}
+    
+    {% endblock %}
+</head>
+<body>
+<div class="container body">
+
+
+<div class="topbar">
+        {% block topbar-right %}{% endblock %}
+        <h1 class="logo">
+            <span class="start"><i class="fa fa-institution"></i> PACER</span><span class="end">Tracker</span>
+        </h1>
+</div>
+
+{% block content %}{% endblock content %}
+</body>
+
+</html>
+

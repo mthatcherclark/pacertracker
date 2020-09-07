@@ -1,0 +1,37 @@
+{% extends "pacertracker/base.html" %}
+
+{% block title %}PACER Tracker Log in{% endblock %}
+
+{% block head_style %}
+{{ block.super }}
+	<style>.error { font-weight: bold; color: #aa4444; font-size: 16px; }</style>
+{% endblock %}
+
+{% block content %}
+	<div class="row"><div class="col-xs-12 col-sm-10 col-sm-push-1 col-md-6 col-md-push-3">
+		<h2>Log in</h2>
+		{% if form.errors %}
+			<p class="error">Sorry, that's not a valid username or password.</p>
+		{% endif %}
+		
+		<form action="{% url 'login' %}" method="post">
+			<fieldset>
+				{% csrf_token %}
+				<div class="form-group">
+					<label for="username"><h4>User name:</h4></label>
+					<input type="text" class="form-control" id="username" name="username" value="" placeholder="Enter user name">
+				</div>
+				
+				<div class="form-group">
+					<label for="password"><h4>Password:</h4></label>
+					<input type="password" class="form-control" id="password" name="password" value="" placeholder="Enter password">
+				</div>
+
+				<button type="submit" value="login" class="btn btn-default">Log in</button>
+				<a href="{% url 'password_reset' %}" type="submit" value="login" class="btn btn-default"><small>Forgot password</small></a>
+				<input type="hidden" name="next" value="{% url 'alerts' %}" />
+			</fieldset>
+		</form>
+	</div></div> <!-- sizes -->
+{% endblock content %}
+		

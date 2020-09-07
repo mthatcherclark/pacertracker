@@ -1,0 +1,6 @@
+include README.md
+recursive-include pacertracker/fixtures *
+recursive-include pacertracker/management *
+recursive-include pacertracker/migrations *
+recursive-include pacertracker/static *
+recursive-include pacertracker/templates *

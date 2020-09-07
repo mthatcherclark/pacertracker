@@ -1,0 +1,71 @@
+input[type="radio"] { vertical-align: baseline; }
+
+.body { margin-bottom: 25px; }
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto Condensed', serif; font-weight: 700;
+}
+
+/************
+ * Branding *
+ ************/
+
+.logo .start { background-color: #2A2A2A; border: 1px solid black;
+    color: #F3F3F3; padding: 0 2px; }
+.logo .end { background-color: #F3F3F3; border: 1px solid white;
+    color: #2A2A2A; padding: 0 2px; }
+
+.topbar { position: relative; background-color: #F3F3F3; margin-bottom: 25px; }
+.nav-btns { margin: 2px; }
+@media (max-width: 767px) {
+    .topbar { background-color: transparent; }
+}
+
+/**********
+ * Alerts *
+ **********/
+
+.alert {
+    padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #ddd;
+}
+
+.alert-heading .words { margin-left: 25px;}
+.alert-heading .glyphicon { color: #777; position: absolute; top: 23px; font-size: 18px; }
+.alert-heading .badge { font-size: normal; font-weight: normal; font-size: 14px; }
+
+.ctl-delete { margin-top: 17px; }
+
+.alert-detail { margin-left: 25px; }
+
+.search-help-toggle .icon { font-size: 20px; color: #777; }
+
+.search-help { position: relative; }
+.search-help .icon {
+    font-size: 50px; color: #777;
+    position: absolute; top: -4px; right: 8px;
+}
+.search-help ul { list-style-type: square; }
+
+.options label {
+    font-weight: normal;
+}
+
+.court-count {
+    background-color: #2A2A2A; color: #FFF;
+    padding: 6px; border-radius: 8px;
+}
+.court-count-wrapper {
+    display: inline-block;
+    margin: 8px 0;
+}
+
+.courts { display: none; margin-bottom: 20px; }
+.courts h4 { margin-top: 15px;}
+
+.courtlist-toggle { cursor: pointer; }
+
+.courts { display: none; }
+
+.court-disabled { color: #ccc; }
+
+.court-legend { margin-bottom: 10px; font-size: 15px; }

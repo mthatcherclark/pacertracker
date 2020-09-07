@@ -1,0 +1,22 @@
+<div class="keywords form-group"> <!-- start keywords section -->
+    <strong class="text-error">{{ form.words.errors }}</strong>
+    
+    {% if not forloop.last %}
+    <h4>Search terms:</h4>
+    {% endif %}
+    
+    <!-- Search box -->
+    <div class="controls">
+        <div class="search-box input-prepend">
+            <span class="add-on"></span>
+            <input id="id_{{ form.words.html_name }}" maxlength="75" name="{{ form.words.html_name }}" type="search " class="keywords form-control input-lg" query-url="{% url 'lookup' %}" value="{% firstof form.words.value %}" placeholder="Enter keywords or a case number."/>
+            
+            <div class="clearfix">
+            <span class="help-block search-hint pull-right">Leave blank to get an alert for every case. <a class="btn btn-default search-help-toggle">Search tips <i class="fa fa-question-circle icon"></i></a></span>
+            </div>
+        </div>
+    </div>
+    
+    {% include "pacertracker/pieces/search_help.html" %}
+
+</div> <!-- end keywords section -->

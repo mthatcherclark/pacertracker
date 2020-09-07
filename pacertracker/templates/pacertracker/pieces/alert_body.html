@@ -1,0 +1,33 @@
+<div id="collapse_{{ form.prefix }}" class="alert-body collapse {% if form.errors or forloop.last and not formset.forms|length >= formset.max_num%}in{% endif %}"> <!-- start collapse -->
+    <div class="alert-inner">
+        <div class="alert-detail">
+        <div class="row top-ctl">
+            {% if form.errors %}<strong class="text-danger">ERROR: You must select at least one court before saving</strong>{% endif %}
+            <div class="col-xs-12">
+                {% include "pacertracker/pieces/court_picker.html" %}
+                
+                <div class="row">
+                    <div class="form-group court-selection"> <!-- start court groups and court list section -->
+                        <div class="col-xs-12">
+                            <div class="row courts" style="display: none;">
+                                {{ form.courts }}
+                            </div>
+                        </div> <!-- /col-sm-8 -->
+                    </div> <!-- /court_selection -->
+                </div> <!-- /row -->
+                
+            </div>
+            
+            <div class="col-xs-12 col-sm-7 col-lg-9 pull-left">
+                {% include "pacertracker/pieces/search_box.html" %}
+            </div>
+            
+            <div class="col-xs-12 col-sm-5 col-lg-3 pull-right"> <!-- frequency / filings questions -->
+                {% include "pacertracker/pieces/options.html" %}
+            </div> <!-- /freq-filings -->
+            
+        </div> <!-- /top-ctl /row -->
+        
+    </div> <!-- /alert-detail -->
+    </div> <!-- /accordian-inner -->
+</div> <!-- collapse div -->

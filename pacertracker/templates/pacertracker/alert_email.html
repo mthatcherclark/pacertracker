@@ -1,0 +1,125 @@
+{% load humanize %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>PACER Tracker Alert Email</title>
+<style>
+a:link {
+color:#046380;
+text-decoration:underline;
+}
+a:visited {
+color:#A7A37E;
+text-decoration:none;
+}
+a:hover {
+color:#002F2F;
+text-decoration:underline;
+}
+a:active {
+color:#046380;
+text-decoration:none;
+}
+</style>
+</head>
+<body>
+<table align="center" width="100%" style="border: #666666 1px solid;" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><TABLE width="80%" border="0" cellpadding="0" cellspacing="0" align="center">
+        <TR>
+          <TD>
+            <p style="font-family: arial,  helvetica, sans-serif;font-size: 20px;color: #666666;"><br><a name="top-area">PACER Tracker Alert for {{ user.first_name }} {{ user.last_name}}</a></p>
+            <p style="font-family: arial,  helvetica, sans-serif;font-size: 14px;color:red;">Warning: Clicking on document links may lead to immediate charges to your PACER Account.</p>
+            <p style="font-family: arial,  helvetica, sans-serif;font-size: 14px;">Times are in the U.S. Eastern Time Zone.</p>
+            <p style="font-family: arial,  helvetica, sans-serif;font-size: 14px;"><a href="{{ site_url }}">Click here to change your alerts or your password.</a></p>
+            
+            
+            <p style="font-family: arial,  helvetica, sans-serif;font-size: 14px;color: #666666;">Jump to an alert:</p>
+            {% for alert_key, alert in email_data.items %}
+                <p style="font-family: arial,  helvetica, sans-serif;font-size: 14px;">
+                <a href="#{{ alert_key }}">
+                {% if alert.alert.live_updates %}
+                    LIVE alert for 
+                {% else %}
+                    Daily alert for 
+                {% endif %}
+                "{% firstof alert.alert.words "all cases" %}"
+                {% if alert.case_count > 150 %}
+                    (found entries in more than 150 cases. Only 150 displayed here due to email limitations.)
+                {% else %}
+                    (found entries in {{ alert.case_count|apnumber }} case{{ alert.case_count|pluralize }})
+                {% endif %}
+                </a>
+                </p>
+            {% endfor %}
+            <hr>
+            {% for alert_key, alert in email_data.items %}
+                <span style="font-family: arial,  helvetica, sans-serif;font-size: 16px;color: #666666;"> <a name="{{ alert_key }}">
+                    {% if alert.alert.live_updates %}
+                        LIVE alert for 
+                    {% else %}
+                        Daily alert for 
+                    {% endif %}
+                    "{% firstof alert.alert.words "all cases" %}"
+                    {% if alert.alert.only_new_cases %}
+                        (found {{ alert.cases.items|length|apnumber }} new case{{ alert.case_count|pluralize }})
+                    {% else %}
+                        (found entries in {{ alert.case_count|apnumber }} case{{ alert.case_count|pluralize }})
+                    {% endif %}
+                </a><a href="#top-area"> [back to top]</a></span>
+                {% if alert.case_count > 150 %}
+                    <br>
+                    <span style="font-family: arial,  helvetica, sans-serif;font-size: 12px;color:red;">
+                    Warning: Due to email limitations, only 150 cases are displayed here. Consider selecting fewer courts or adding filters.
+                    </span>
+                {% endif %}
+                {% for case_key, case in alert.cases.items %}
+                    <table width="100%" align="center" border="0" cellspacing="0" cellpadding="10">
+                    <tr>
+                    <td>
+                        <span style="font-family: arial,  helvetica, sans-serif;font-size: 14px;color: #666666;">
+                        <a href="{{ case.case.website }} ">  {{ case.case.title }}</a></span>
+                        <br>
+                        <span style="font-family: arial,  helvetica, sans-serif;font-size: 12px;color: #666666;">
+                        {{ case.case.get_type_display }} case filed in {{ case.case.court.name }} {{ case.case.court.get_type_display }}
+                        {% if case.case.is_date_filed %}
+                            on {{ case.case.captured_date|date:"SHORT_DATE_FORMAT" }}</span>
+                        {% else %}
+                            </span>
+                        {% endif %}
+                        
+                        {% if case.entry_count > 25 %}
+                            <br>
+                            <span style="font-family: arial,  helvetica, sans-serif;font-size: 12px;color:red;">
+                            Warning: There were {{ case.entry_count }} new filings for this case. Only 25 are shown here. Click the case title to generate a full docket report on PACER.
+                            </span>
+                        {% endif %}
+                        
+                        <table width="98%" align="right" border="0" cellspacing="0" cellpadding="0">
+                        {% for entry_key, entry in case.entries.items %}
+                            <tr>
+                            <td>
+                            <span style="font-family: arial,  helvetica, sans-serif;font-size: 12px;color: #666666;">&#8226; 
+                            {% if entry.website %}
+                                <a href="{{ entry.website }}">{% if entry.number %}{{ entry.number }} {% endif %}{{ entry.description }}</a> ({{ entry.time_filed|date:"m/d/y h:i a" }})
+                            {% else %}
+                                {{ entry.description }}, ({{ entry.time_filed|date:"m/d/y g:i a" }})
+                            {% endif %}
+                            </span>
+                            </td>
+                            </tr>
+                        {% endfor %}
+                        </table>
+                    </td>
+                    </tr>
+                    </table>
+                {% endfor %}
+                <hr>
+            {% endfor %}
+            <br>
+            </TD>
+        </TR>
+      </TABLE>
+</table>
+</body>
+</html>

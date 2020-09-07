@@ -1,0 +1,20 @@
+<div class="court-picker row">
+    <div class="col-xs-12">
+        <input id="id_{{ form.prefix }}-{{ group.id }}-checkall" type="button" class="btn btn-default btn-sm checkall" value="All courts" data-toggle="button" />
+        <div class="btn-group">
+            {% for group in court_groups %}
+                <input id="id_{{ form.prefix }}-{{ group.id }}-checksome" type="button" 
+                    class="btn btn-default btn-sm checksome" 
+                    court-array = 
+                    "{{ group.court_array }}" 
+                    value="{{ group.name }}" data-toggle="button"/>
+            {% endfor %}
+        </div>
+        
+        <a class="btn btn-default btn-sm courtlist-toggle">Customize</a>
+        
+        <div class="court-count-wrapper">
+            <span class="court-count h5">0</span> courts
+        </div>
+    </div>
+</div>

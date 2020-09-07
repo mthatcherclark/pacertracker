@@ -1,0 +1,39 @@
+<div class="row options">
+    <div class="form-group freq-toggle col-xs-6">
+        {{ form.live_updates.errors }}
+        {{ form.live_updates }} <!-- this hidden input is dynamically set based on radio button selection -->
+        <h5>Alert frequency:</h5>
+        <label>
+            <input name="quickly_{{ form.prefix }}" type="radio" onclick="$('#id_{{ form.live_updates.html_name }}').prop('checked',true);"
+        {% if form.live_updates.value %} checked {% else %} {% endif %}/>
+            ASAP
+        </label>
+        <label>
+            <input name="quickly_{{ form.prefix }}" type="radio" onclick="$('#id_{{ form.live_updates.html_name }}').prop('checked',false);"
+            {% if form.live_updates.value %}{% elif not forloop.last or form.errors %} checked{% endif %}/>
+            End of day
+        </label>
+    </div>
+
+    <div class="form-group alert-on-toggle col-xs-6">
+        {{ form.only_new_cases.errors }}
+        {{ form.only_new_cases }} <!-- this hidden input is dynamically set based on radio button selection -->
+        <h5>Alert on:</h5>
+            <label>
+                <input name="filings_{{ form.prefix }}" type="radio" onclick="$('#id_{{ form.only_new_cases.html_name }}').prop('checked',true);" value="{{form.only_new_cases.value}}" {% if form.only_new_cases.value %} checked {% else %} {% endif %} />
+                New cases
+            </label>
+            <label>
+                <input name="filings_{{ form.prefix }}" type="radio" onclick="$('#id_{{ form.only_new_cases.html_name }}').prop('checked',false);" {% if form.only_new_cases.value %}  {% elif not forloop.last or form.errors %} checked{% endif %}/>
+                Any filing
+            </label>
+    </div>
+    
+    <div class="filter_selection col-xs-12"> <!-- start district court filter section -->
+        {{ form.district_court_filter.errors }}
+        <p>
+            <small><b>Filter (district courts only):</b></small><br>
+            {{ form.district_court_filter }}
+        </p>
+    </div> <!-- end district court filter section -->
+</div> <!-- /.options -->

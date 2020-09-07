@@ -1,0 +1,42 @@
+<div class="alert-heading">
+    {{ form.id }}
+     <!-- start alert heading -->
+        <div class="row">
+            {% if not forloop.last or forloop.last and formset.forms|length >= formset.max_num %}
+            <a class="alert-toggle" data-toggle="collapse" data-parent="#alerts" href="#collapse_{{ form.prefix }}">
+            <div class="col-xs-9 col-sm-10 col-md-11">
+                <h3 class="collapse_{{ form.prefix }}">
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                    <div class="words">
+                        {% if form.words.value %}&ldquo;{% endif %}{% firstof form.words.value "* All cases" %}{% if form.words.value %}&rdquo;{% endif %}
+                        <br class="visible-xs">
+                        <span class="badge">{% if form.live_updates.value %}ASAP{% else %}DAILY{% endif %}</span>
+                        <span class="badge">{% if form.only_new_cases.value %}NEW CASES{% else %}ANY FILING{% endif %}</span>
+                    </div>
+                </h3>
+            </div> <!-- /col-sm-10 -->
+            </a>
+            
+            <div class="col-xs-3 col-sm-2 col-md-1 text-right ctl-delete">
+                {% if form.DELETE.value %}
+                    <input id="id_{{ form.DELETE.html_name }}" name="{{ form.DELETE.html_name }}" 
+                        type="checkbox" style="display:none;" checked />
+                    <button type="button" class="btn btn-small alert-delete btn-danger active" data-toggle="button" 
+                        value="{% firstof form.words.value "* All cases" %}">Delete</button>
+                {% else %}
+                    <input id="id_{{ form.DELETE.html_name }}" name="{{ form.DELETE.html_name }}" 
+                        type="checkbox" style="display:none;" />
+                    <button type="button" class="btn btn-small btn-default alert-delete" data-toggle="button" value="{% firstof form.words.value "* All cases" %}">
+                        Delete</button>
+                {% endif %}
+            </div> <!-- /col-sm-2 /ctl-delete -->
+            {% else %}
+            <div class="col-xs-9 col-sm-10 col-md-11">
+                <h3 class="collapse_{{ form.prefix }}">
+                    <span class="glyphicon glyphicon-plus"></span>
+                    <div class="words">Add alert:</div>
+                </h3>
+            </div> <!-- /col-sm-10 -->
+            {% endif %}
+        </div> <!-- /row -->
+</div> <!-- /alert-heading -->

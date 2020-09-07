@@ -1,0 +1,12 @@
+# PACERTRACKER
+##################
+django-haystack
+django-localflavor
+beautifulsoup4
+requests
+feedparser
+chardet
+html2text
+simplejson
+lxml
+python-dateutil

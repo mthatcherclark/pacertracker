@@ -1,0 +1,42 @@
+{% extends "pacertracker/base.html" %}
+
+{% load staticfiles %}
+
+{% block title %}PACER Tracker - Alerts{% endblock %}
+
+{% block head_scripts %}
+    <script src="{% static "pacertracker/js/pacertracker_alerts.js" %}"></script>
+{% endblock head_scripts %}
+
+{% block topbar-right %}
+        <p class="nav-btns pull-right">
+            <a class="btn btn-default" href="{% url 'change_password' %}"><small>Change password</small></a>
+            <a class="btn btn-default"href="{% url 'logout_view' %}">Log out</a>
+        </p><div class="clearfix visible-xs"></div>
+{% endblock %}
+
+{% block content %}
+    <div class="row"><div class="col-sm-12">
+    
+    <h1 class="title">{{ user.first_name }} {{ user.last_name }}&rsquo;s alerts</h1>
+	
+    <div id="alerts">
+    <form id="court_form" action="{% url 'alerts' %}" method="post">
+		{% csrf_token %}
+        <fieldset>
+		{{ formset.management_form }}
+		
+        {% for form in formset %}
+			<div class="alert">
+                {% include "pacertracker/pieces/alert_heading.html" %}
+                {% include "pacertracker/pieces/alert_body.html" %}
+    		</div> <!-- /alert -->
+		{% endfor %}
+		
+        {% include "pacertracker/pieces/save_btns.html" %}
+        </fieldset>
+	</form>
+	</div> <!-- alerts_accordion -->
+    </div></div> <!-- /row /col-sm-10 col-sm-offset-1 -->
+</div> <!-- container -->
+{% endblock content %}

@@ -1,0 +1,44 @@
+<div class="search-help" style="display: none;">
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <ul class="nav nav-tabs nav-justified" role="tablist" id="search-tabs">
+                <li class="active"><a href="#tab_{{ form.prefix }}_1" data-toggle="tab">Sample Results</a></li>
+                <li><a href="#tab_{{ form.prefix }}_2" data-toggle="tab">Keyword search</a></li>
+                <li><a href="#tab_{{ form.prefix }}_3" data-toggle="tab">Case number search</a></li>
+                <div class="icon"><i class="fa fa-question-circle"></i></div>
+            </ul>
+              
+              <div class="tab-content">
+                <div class="tab-pane active" id="tab_{{ form.prefix }}_1">
+                    <p>Up to 30 cases currently in the PACER Tracker database that could be in your alert are listed below. Not what you expected? Click on the "keyword search" and 
+                    "case number search" tabs above for tips on setting up your alert.</p>
+                    <p>Here are your sample results:</p>
+                    <div class="results-display" style="max-height: 200px; overflow-y:scroll;">
+                    <em>No cases found.</em>
+                    </div>
+                </div>
+                <div class="tab-pane" id="tab_{{ form.prefix }}_2">
+                    <p>Keyword searches are as simple as typing words separated by a space, making sure not to enter any extra or unnecessary words. PACER Tracker only has the ability to filter cases by 
+                    words in their titles. Here are some examples of titles for different types of cases:</p>
+                    <ul>
+                    <li>Bankruptcy cases: 11-12345 John James Doe</li>
+                    <li>Criminal cases: 4:13-cr-12345-1 USA v. Doe</li>
+                    <li>Civil cases: 2:13-cv-12345 John Doe v. ACME Industries et al</li>
+                    <li>Appeals cases: 13-1234 Doe v. USA</li>
+                    </ul>
+                    <p>So, criminal cases and often appeals cases only list last names of parties, which means you can only filter by last name. PACER Tracker is not useful for finding criminal cases involving 
+                    people with common last names. Bankruptcy cases do list the full name, though, and civil cases often contain the full name of one plaintiff and one defendant. Other 
+                    parties ("et al") to a case are not listed, meaning that you can not filter an alert to return cases that list "New York City" as a second, third, etc. party.</p>
+                </div>
+                <div class="tab-pane" id="tab_{{ form.prefix }}_3">
+                    <p>Type in the case number and check the "Sample Results" tab above to see if it appears. If it does not appear or if the case is extremely new or hasn't been active in more 
+                    than a year, check to make sure you have selected the correct court and then follow these guidelines to ensure PACER Tracker will send you an alert the next time the case is active.</p>
+                    <p>PACER Tracker's case numbers may differ from those on court documents. So, instead of typing an entire case number, type its two-digit year, followed by a space, then its 
+                    (usually) five-digit number, including any leading or trailing zeroes. So, for case "1:12-cv-01234-xxx," which would have been filed in 2012, type this in the alert box: 12 01234.</p>
+                    <p>If your search returns more than one case, go ahead and type the whole case number into the search box or add the name of a party to a case. But remember, the more specific your search
+                     the less likely you are to receive an alert. It may be better to get two emails rather than none.</p>
+                </div>
+              </div>
+        </div> <!-- /panel-body -->
+    </div> <!-- /panel -->
+</div> <!-- /search help -->
