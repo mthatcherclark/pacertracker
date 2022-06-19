@@ -1,6 +1,6 @@
 {% extends "pacertracker/base.html" %}
 
-{% load staticfiles %}
+{% load static %}
 
 {% block title %}PACER Tracker - Alerts{% endblock %}
 
@@ -10,8 +10,9 @@
 
 {% block topbar-right %}
         <p class="nav-btns pull-right">
+            <a class="btn btn-default" href="{% url 'groups' %}"><small>Modify court groups</small></a>
             <a class="btn btn-default" href="{% url 'change_password' %}"><small>Change password</small></a>
-            <a class="btn btn-default"href="{% url 'logout_view' %}">Log out</a>
+            <a class="btn btn-default" href="{% url 'logout_view' %}"><small>Log out</small></a>
         </p><div class="clearfix visible-xs"></div>
 {% endblock %}
 

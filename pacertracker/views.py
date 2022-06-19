@@ -14,7 +14,7 @@ from django.forms import CheckboxSelectMultiple
 from haystack.query import SearchQuerySet
 from haystack.inputs import Clean
 
-from pacertracker.forms import PasswordReset, AlertForm
+from pacertracker.forms import PasswordReset, AlertForm, CourtSelectMultiple
 from pacertracker.models import Alert, Court, CourtGroup, Case
 
 def index(request):
@@ -51,10 +51,10 @@ def alerts(request):
         
     court_groups = []
     court_group = {}
-    for group in CourtGroup.objects.all().order_by('name'):
+    for group in CourtGroup.objects.filter(user=request.user).order_by('name'):
         court_group['id'] = group.id
         court_group['name'] = group.name
-        court_group['court_array'] = str(list(group.courts.filter(has_feed=True).values_list('id', flat = True))
+        court_group['court_array'] = str(list(group.courts.values_list('id', flat = True))
                                          ).replace('[','').replace(']','').replace(',','')
         court_groups.append(court_group)
         court_group = {}
@@ -91,6 +91,38 @@ def case_lookup(request):
                 data = simplejson.dumps(data)
 
     return HttpResponse(data, content_type='application/json')
+    
+def groups(request):
+    if not request.user.is_authenticated:
+        return redirect('index')
+        
+        
+    CourtGroupFormSet = modelformset_factory(CourtGroup, 
+                                             fields={'name','courts'},
+                                             extra=1,
+                                             max_num=5, 
+                                             can_delete=True,
+                                             widgets={'courts': CourtSelectMultiple()},)
+
+    if request.method == 'POST':
+        formset = CourtGroupFormSet(request.POST, 
+                                    queryset=CourtGroup.objects.filter(user=request.user).order_by('id'))
+        if formset.is_valid():
+            instances = formset.save(commit=False)
+            for instance in instances:
+                instance.user = request.user
+                instance.save()
+            formset.save_m2m()
+            for object in formset.deleted_objects:
+                object.delete()
+            
+            return redirect('alerts')
+    else:
+       formset = CourtGroupFormSet(queryset=CourtGroup.objects.filter(user=request.user).order_by('id'))
+    
+    return render(request, 'pacertracker/group_form.html', 
+                  {'formset': formset}
+                  )
     
 def change_password(request):
     if not request.user.is_authenticated:

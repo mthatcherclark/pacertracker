@@ -52,11 +52,12 @@ class Court(models.Model):
 
 
 class CourtGroup(models.Model):
+    user = models.ForeignKey(User, editable=False, on_delete=models.CASCADE)
     name = models.CharField(max_length=75)
     courts = models.ManyToManyField('Court')
 
     def __str__(self):
-        return self.name
+        return self.user.username + ' - '+ self.name
 
 
 class Case(models.Model):

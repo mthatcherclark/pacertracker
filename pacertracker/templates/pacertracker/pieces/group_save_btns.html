@@ -1,0 +1,10 @@
+<div class="row">
+    {% if formset.forms|length >= formset.max_num %}
+    <div class="col-xs-9 col-sm-10 col-md-11">
+        <h4><strong class="text-danger">You have reached the maximum number of alerts. Delete old alerts to add more.</strong></h4>
+    </div>
+    {% endif %}
+    <div class="col-xs-12 col-sm-2 pull-right text-align-right">
+        <input class="btn btn-primary btn-lg btn-block submit-button" type="submit" value="Save" name="save_and_add" />
+    </div>
+</div>

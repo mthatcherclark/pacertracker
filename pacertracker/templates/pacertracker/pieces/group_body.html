@@ -1,0 +1,36 @@
+<div id="collapse_{{ form.prefix }}" class="alert-body collapse {% if form.errors or forloop.last and not formset.forms|length >= formset.max_num%}in{% endif %}"> <!-- start collapse -->
+    <div class="alert-inner">
+        <div class="alert-detail">
+        <div class="row top-ctl">
+            <div class="keywords form-group"> <!-- start keywords section -->
+                <strong class="text-error">{{ form.name.errors }}</strong>
+                
+                {% if not forloop.last %}
+                <h4>Group name:</h4>
+                {% endif %}
+                
+                <!-- Search box -->
+                <div class="controls">
+                    <div class="search-box input-prepend">
+                        <span class="add-on"></span>
+                        <input id="id_{{ form.name.html_name }}" maxlength="75" name="{{ form.name.html_name }}" type="search" class="keywords form-control input-lg" value="{% firstof form.name.value   %}" placeholder="Enter court group name."/>
+                    </div>
+                </div>
+            </div> <!-- end keywords section -->
+        
+        
+            {% if form.errors %}<strong class="text-danger">ERROR: You must select at least one court before saving</strong>{% endif %}
+            <div class="col-xs-12">
+                <div class="row">
+                {{ form.courts }}
+                </div> <!-- /row -->
+                
+            </div>
+            
+
+            
+        </div> <!-- /top-ctl /row -->
+        
+    </div> <!-- /alert-detail -->
+    </div> <!-- /accordian-inner -->
+</div> <!-- collapse div -->

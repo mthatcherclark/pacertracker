@@ -65,6 +65,11 @@ def get_tzinfos():
                 'CDT': gettz("America/Chicago"),
                 'MDT': gettz("America/Denver"),
                 'PDT': gettz("America/Los Angeles"),
+                'EST': gettz("America/New York"),
+                'CST': gettz("America/Chicago"),
+                'MST': gettz("America/Denver"),
+                'PST': gettz("America/Los Angeles"),
+                'GMT': gettz("UTC"),
                 }
                     
     return tzinfos
@@ -341,6 +346,17 @@ class Command(BaseCommand):
                 courts_broken += 1
                 continue
 
+            # Checking that the last_updated time has a TZ
+            try:
+                compare = court.last_updated >= time_updated
+            except:
+                print(court.last_updated)
+                print(time_updated)
+                self.stdout.write('%s|"error","Could not save feed (Could not get TZ with  court.last_updated)"|"%s"|"%s"' % (time_started,
+                                    court.get_type_display() + ': ' + court.name,
+                                     feed))
+                continue
+            
             #If the feed is not new, go to next feed
             if court.last_updated >= time_updated:
                 courts_old += 1

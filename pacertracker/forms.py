@@ -32,7 +32,7 @@ def get_court_image(court):
 
 
 class CourtSelectMultiple(CheckboxSelectMultiple):
-    def render(self, name, value, attrs=None, choices=()):
+    def render(self, name, value, attrs=None, choices=(), renderer=None):
         #If no courts are selected for this alert, make value a blank list
         if value is None: value = []
         # Normalize values to strings so that lambda function below can check the right boxes
@@ -59,9 +59,8 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
         #Start the first column, containing district and bankruptcy courts
         # output.append(u'<div class="col-sm-4">')
         output.append(u'<div class="col-xs-12"><h4>District (' + district_img + ') and Bankruptcy Courts (' + bank_img + ')</h4></div>')
-        output.append(u'<div class="col-xs-12 court-legend"><span class="text-danger" style=""><i class="fa fa-institution">')
-        output.append(u'</i> Courts in red</span> do not publish all of their filings, and may not alert you as soon as a ')
-        output.append(u'new case is filed.</div>')
+        output.append(u'<div class="col-xs-12 court-legend"><span class="text-danger" style=""><i class="fa fa-institution"></i> Courts in red</span> do not publish all of their filings. They may not alert you as soon as a new case is filed.</div>')
+        output.append(u'<div class="col-xs-12 court-legend"><span class="court-disabled"><i class="fa fa-institution"></i>Courts in gray</span> do not publish any filings. They will not generate any alerts, but you can select them if you suspect this may change.</div>')
                 
         #Note: there are 94 district courts and 94 bankruptcy courts.
         #So, the first column will have 47 and second will have 47.
@@ -71,19 +70,15 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
             if court['type'] == 'B' or court['type'] == 'D':
                 if not court['has_feed']:
                     final_attrs = dict(final_attrs, name='courts', id='%s_%s' % (attrs['id'], field_id), 
-                        disabled='disabled', title='Court does not publish data.')
+                        title='Court does not publish data.')
                     final_attrs['class'] = 'courtbox'
                 else:
-                    final_attrs = dict(final_attrs, name='courts', id='%s_%s' % (attrs['id'], field_id))
+                    final_attrs = dict(final_attrs, name='courts', id='%s_%s' % (attrs['id'], field_id), title='')
 
                     if court['type'] == 'D':
                         final_attrs['class'] = 'courtbox district'
                     else:
                         final_attrs['class'] = 'courtbox'
-
-                    if 'disabled' in final_attrs:
-                        del final_attrs['disabled']
-                        del final_attrs['title']
                     
                 cb = CheckboxInput(final_attrs, check_test=lambda value: value in str_values)
                 rendered_cb = cb.render(name, force_text(court['id']))
@@ -113,12 +108,9 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
             if court['type'] not in ['B', 'D', 'A']:
                 if not court['has_feed']:
                     final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id), 
-                        disabled='disabled', title='Court does not publish data.')
+                        title='Court does not publish data.')
                 else:
-                    final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id))
-                    if 'disabled' in final_attrs:
-                        del final_attrs['disabled']
-                        del final_attrs['title']
+                    final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id), title='')
                     
                 cb = CheckboxInput(final_attrs, check_test=lambda value: value in str_values)
                 rendered_cb = cb.render(name, force_text(court['id']))
@@ -126,6 +118,10 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
                 option_label = conditional_escape(force_text(court['name']))
                 if not court['publishes_all'] and court['has_feed']:
                     option_label = ('<span class="text-danger" title="' + 
+                                    conditional_escape(force_text(court['filing_types'])) 
+                                    + '">' + option_label + '</span>')
+                elif not court['has_feed']:
+                    option_label = ('<span class="court-disabled" title="' +
                                     conditional_escape(force_text(court['filing_types'])) 
                                     + '">' + option_label + '</span>')
                 output.append(div + u'%s %s</div>' % (rendered_cb, option_label))
@@ -138,12 +134,9 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
             if court['type'] == 'A':
                 if not court['has_feed']:
                     final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id), 
-                        disabled='disabled', title='Court does not publish data.')
+                        title='Court does not publish data.')
                 else:
-                    final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id))
-                    if 'disabled' in final_attrs:
-                        del final_attrs['disabled']
-                        del final_attrs['title']
+                    final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id), title='')
                     
                 cb = CheckboxInput(final_attrs, check_test=lambda value: value in str_values)
                 rendered_cb = cb.render(name, force_text(court['id']))
@@ -151,6 +144,10 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
                 option_label = conditional_escape(force_text(court['name']))
                 if not court['publishes_all'] and court['has_feed']:
                     option_label = ('<span class="text-danger" title="' + 
+                                    conditional_escape(force_text(court['filing_types'])) 
+                                    + '">' + option_label + '</span>')
+                elif not court['has_feed']:
+                    option_label = ('<span class="court-disabled" title="' +
                                     conditional_escape(force_text(court['filing_types'])) 
                                     + '">' + option_label + '</span>')
                 output.append(div + u'%s %s</div>' % (rendered_cb, option_label))

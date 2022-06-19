@@ -1,0 +1,39 @@
+<div class="alert-heading">
+    {{ form.id }}
+     <!-- start alert heading -->
+        <div class="row">
+            {% if not forloop.last or forloop.last and formset.forms|length >= formset.max_num %}
+            <a class="alert-toggle" data-toggle="collapse" data-parent="#alerts" href="#collapse_{{ form.prefix }}">
+            <div class="col-xs-9 col-sm-10 col-md-11">
+                <h3 class="collapse_{{ form.prefix }}">
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                    <div class="words">
+                        {% if form.name.value %}&ldquo;{% endif %}{{ form.name.value }}{% if form.name.value %}&rdquo;{% endif %}
+                    </div>
+                </h3>
+            </div> <!-- /col-sm-10 -->
+            </a>
+            
+            <div class="col-xs-3 col-sm-2 col-md-1 text-right ctl-delete">
+                {% if form.DELETE.value %}
+                    <input id="id_{{ form.DELETE.html_name }}" name="{{ form.DELETE.html_name }}" 
+                        type="checkbox" style="display:none;" checked />
+                    <button type="button" class="btn btn-small alert-delete btn-danger active" data-toggle="button" 
+                        value="{{ form.name.value }}">Delete</button>
+                {% else %}
+                    <input id="id_{{ form.DELETE.html_name }}" name="{{ form.DELETE.html_name }}" 
+                        type="checkbox" style="display:none;" />
+                    <button type="button" class="btn btn-small btn-default alert-delete" data-toggle="button" value="{{ form.name.value }}">
+                        Delete</button>
+                {% endif %}
+            </div> <!-- /col-sm-2 /ctl-delete -->
+            {% else %}
+            <div class="col-xs-9 col-sm-10 col-md-11">
+                <h3 class="collapse_{{ form.prefix }}">
+                    <span class="glyphicon glyphicon-plus"></span>
+                    <div class="words">Add court group:</div>
+                </h3>
+            </div> <!-- /col-sm-10 -->
+            {% endif %}
+        </div> <!-- /row -->
+</div> <!-- /alert-heading -->

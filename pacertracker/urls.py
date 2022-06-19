@@ -12,6 +12,7 @@ urlpatterns = [
 		name='login'),
 	url(r'^logout/', views.logout_view, name='logout_view'),
 	url(r'^alerts/', views.alerts, name='alerts'),
+    url(r'^groups/', views.groups, name='groups'),
 	url(r'^lookup/$', views.case_lookup, name='lookup'),
 	url(r'^change_password/', views.change_password, name='change_password'),
 	url(r'^password/reset/$',
