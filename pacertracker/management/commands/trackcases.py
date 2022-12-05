@@ -53,10 +53,10 @@ def download_feed(court, feeds_path):
         court.feed_url,
         timeout=30
     )
-
+    
     with open('%s/%s - %s.xml' % (feeds_path, court.name, court.get_type_display()), 'w') as out:
         out.write(response.text)
-
+    
     return None
     
 def get_tzinfos():
@@ -160,19 +160,19 @@ def save_everything(last_entries_saved, entries_to_save, total_entries_duplicate
     #entries_to_save.append((0 court, 1 title, 2 case_number, 3 name, 4 type, 5 is_date_filed, 
     #                        6 case_website, 7 description, 8 doc_number, 9 doc_website, 10 time_filed, 
     #                        11 entry_id, 12 case_id))
-
+    
     if entries_to_save:
         # Find the entries that already exist
         returned_entries = list(Entry.objects.filter(id__in=entry_ids).select_related('case'
                                 ).values_list('id', flat=True))
-
+        
         # Eliminate any entry with identical field values
         indices_to_delete = [i for i, x in enumerate(entries_to_save) if x[11] in returned_entries]
         entries_to_save = [x for i, x in enumerate(entries_to_save) if i not in indices_to_delete]
         total_entries_duplicate += len(indices_to_delete)
         for x in entries_to_save:
             last_entries_saved.append(x[11])
-
+        
         if entries_to_save:
             # Obtain unique list of cases and associated entries
             case_ids = [x[12] for x in entries_to_save]
@@ -192,7 +192,7 @@ def save_everything(last_entries_saved, entries_to_save, total_entries_duplicate
                         case.title = case_to_update[1]
                         case.number, case_name = case_to_update[2], case_to_update[3]
                         case.save(update_fields=['title', 'name', 'number'])
-
+            
             # This is the best method for handling race conditions...
             # https://stackoverflow.com/questions/3522827/handling-race-condition-in-model-save/3523439#3523439
             while cases_to_save:
@@ -214,13 +214,13 @@ def save_everything(last_entries_saved, entries_to_save, total_entries_duplicate
                     saved_cases.extend(cases_to_save)
                     total_cases += len(cases_to_save)
                     cases_to_save = None
-
+            
             #Save the entries
             for indice, new_entry in enumerate(entries_to_save):
                 entries_to_save[indice] = Entry(case_id=new_entry[12], description=new_entry[7], number=new_entry[8], 
                                                 website=new_entry[9], time_filed=new_entry[10],
                                                 id=new_entry[11])
-
+            
             Entry.objects.bulk_create(entries_to_save)
             total_entries += len(entries_to_save)
             

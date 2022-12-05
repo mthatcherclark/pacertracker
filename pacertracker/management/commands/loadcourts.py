@@ -197,12 +197,15 @@ def update_court(tr_tag):
     court_check = Court.objects.filter(website=website)
     
     if court_check.exists() and court_check.count() == 1:
-        if has_feed and not court_check[0].has_feed:
+        if has_feed and not court_check[0].has_feed and 'nyed' not in feed_url:
             print('This court now has a feed: %s - %s' % (name, court_check[0].get_type_display()))
         elif not has_feed and court_check[0].has_feed:
             print('This court no longer has a feed: %s - %s' % (name, court_check[0].get_type_display()))
-        court_check.update(name=name, type=type, has_feed=has_feed, feed_url=feed_url, website=website,
-                            publishes_all=publishes_all, filing_types=filing_types)
+        
+        if 'nyed' not in feed_url: # This ensures the NYED keeps its fancy one-off URL
+            court_check.update(name=name, type=type, has_feed=has_feed, feed_url=feed_url, website=website,
+                                publishes_all=publishes_all, filing_types=filing_types)
+            
     else:
         #To ensure all entries from current RSS files are retrieved when first scraped for new courts,
         #we set the last_updated to one year ago (roughly).
