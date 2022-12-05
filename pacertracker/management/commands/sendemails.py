@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         messages = [] #prepare messages list
-        subject, from_email = 'PACER Tracker Alert Email', 'web@newsday.com'
+        subject, from_email = 'PACER Tracker Alert Email', 'alerts@pacertracker.com'
 
         time_started = datetime.datetime.utcnow().replace(tzinfo=utc)
         
