@@ -10,7 +10,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-from django.utils.timezone import utc
 from django.core.management.base import BaseCommand, CommandError
 
 from pacertracker.models import Court
@@ -209,7 +208,7 @@ def update_court(tr_tag):
     else:
         #To ensure all entries from current RSS files are retrieved when first scraped for new courts,
         #we set the last_updated to one year ago (roughly).
-        last_updated = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(days=365)
+        last_updated = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc) - datetime.timedelta(days=365)
         court, new = Court.objects.get_or_create(name=name, type=type, 
                     has_feed=has_feed, feed_url=feed_url, website=website,
                     last_updated=last_updated, publishes_all=publishes_all, 

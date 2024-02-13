@@ -19,11 +19,12 @@ from requests.packages.urllib3.util.retry import Retry
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.db.utils import IntegrityError, OperationalError
-from django.utils.timezone import utc
 
 import pacertracker
 from pacertracker.models import Court, Case, Entry
 from pacertracker.search_indexes import CaseIndex
+
+utc = datetime.timezone.utc
 
 def requests_retry_session(
     retries=2,

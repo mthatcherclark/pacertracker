@@ -7,7 +7,7 @@ from django.forms.fields import CharField
 from django.forms.widgets import PasswordInput, CheckboxInput, Select
 from django.forms import ModelForm, CheckboxSelectMultiple, ChoiceField
 from django.contrib.auth.models import User
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 
@@ -17,14 +17,14 @@ from pacertracker.models import Alert, Court
 def get_court_image(court):
     if court['type'] == 'D' and not court['publishes_all'] and court['has_feed']:
         return ('<i class="fa fa-institution text-danger" title="' + 
-                conditional_escape(force_text(court['filing_types'])) + '"></i>')
+                conditional_escape(force_str(court['filing_types'])) + '"></i>')
     elif court['type'] == 'D' and not court['has_feed']:
         return '<i class="fa fa-institution court-disabled"></i>'
     elif court['type'] == 'D':
         return '<i class="fa fa-institution"></i>'
     elif court['type'] == 'B' and not court['publishes_all'] and court['has_feed']:
         return ('<i class="fa fa-usd text-danger" title="' + 
-                conditional_escape(force_text(court['filing_types'])) + '"></i>')
+                conditional_escape(force_str(court['filing_types'])) + '"></i>')
     elif court['type'] == 'B' and not court['has_feed']:
         return '<i class="fa fa-usd court-disabled"></i>'
     elif court['type'] == 'B':
@@ -36,7 +36,7 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
         #If no courts are selected for this alert, make value a blank list
         if value is None: value = []
         # Normalize values to strings so that lambda function below can check the right boxes
-        str_values = set([force_text(v) for v in value])
+        str_values = set([force_str(v) for v in value])
         
         #Check to see if this form object has an id
         has_id = attrs and 'id' in attrs
@@ -81,10 +81,10 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
                         final_attrs['class'] = 'courtbox'
                     
                 cb = CheckboxInput(final_attrs, check_test=lambda value: value in str_values)
-                rendered_cb = cb.render(name, force_text(court['id']))
+                rendered_cb = cb.render(name, force_str(court['id']))
 
                 if court['type'] == 'D':
-                    option_label = conditional_escape(force_text(court['name']))
+                    option_label = conditional_escape(force_str(court['name']))
                     output.append(div + u'%s %s' % (get_court_image(court), rendered_cb))
                 else:
                     output.append(u' %s %s %s</div>' % (get_court_image(court), rendered_cb, option_label))
@@ -113,16 +113,16 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
                     final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id), title='')
                     
                 cb = CheckboxInput(final_attrs, check_test=lambda value: value in str_values)
-                rendered_cb = cb.render(name, force_text(court['id']))
+                rendered_cb = cb.render(name, force_str(court['id']))
 
-                option_label = conditional_escape(force_text(court['name']))
+                option_label = conditional_escape(force_str(court['name']))
                 if not court['publishes_all'] and court['has_feed']:
                     option_label = ('<span class="text-danger" title="' + 
-                                    conditional_escape(force_text(court['filing_types'])) 
+                                    conditional_escape(force_str(court['filing_types'])) 
                                     + '">' + option_label + '</span>')
                 elif not court['has_feed']:
                     option_label = ('<span class="court-disabled" title="' +
-                                    conditional_escape(force_text(court['filing_types'])) 
+                                    conditional_escape(force_str(court['filing_types'])) 
                                     + '">' + option_label + '</span>')
                 output.append(div + u'%s %s</div>' % (rendered_cb, option_label))
                     
@@ -139,16 +139,16 @@ class CourtSelectMultiple(CheckboxSelectMultiple):
                     final_attrs = dict(final_attrs, id='%s_%s' % (attrs['id'], field_id), title='')
                     
                 cb = CheckboxInput(final_attrs, check_test=lambda value: value in str_values)
-                rendered_cb = cb.render(name, force_text(court['id']))
+                rendered_cb = cb.render(name, force_str(court['id']))
 
-                option_label = conditional_escape(force_text(court['name']))
+                option_label = conditional_escape(force_str(court['name']))
                 if not court['publishes_all'] and court['has_feed']:
                     option_label = ('<span class="text-danger" title="' + 
-                                    conditional_escape(force_text(court['filing_types'])) 
+                                    conditional_escape(force_str(court['filing_types'])) 
                                     + '">' + option_label + '</span>')
                 elif not court['has_feed']:
                     option_label = ('<span class="court-disabled" title="' +
-                                    conditional_escape(force_text(court['filing_types'])) 
+                                    conditional_escape(force_str(court['filing_types'])) 
                                     + '">' + option_label + '</span>')
                 output.append(div + u'%s %s</div>' % (rendered_cb, option_label))
                     
