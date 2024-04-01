@@ -7,6 +7,7 @@ import requests
 import html
 import uuid
 import hashlib
+import logging
 
 from concurrent import futures
 from functools import reduce
@@ -25,6 +26,7 @@ from pacertracker.models import Court, Case, Entry
 from pacertracker.search_indexes import CaseIndex
 
 utc = datetime.timezone.utc
+logger = logging.getLogger(__name__)
 
 def requests_retry_session(
     retries=2,
@@ -78,6 +80,29 @@ def get_tzinfos():
 def get_case_type(case_number, court):
     """
     Gets the case type and returns it
+    
+    Case numbers contain a short code meant to specify a case type.
+    Often this is after a two digit year and then a dash.
+    It is then followed by another dash.
+    
+    This is most important for District Court cases, which can be 
+    civil or criminal. Usually, 'cr' means criminal and 'cv' 
+    means civil.
+    
+    However, courts do not need to use 'cr' or 'cv' and have used a
+    wide and ever-changing range of case types. As far as has been
+    seen, no court has yet used the same code for civil and criminal
+    cases, but this may be possible (though perhaps not within a 
+    single district).
+    
+    The below is an ongoing attempt to differentiate them based on
+    these codes, as they have been collected.
+    
+    Unfortunately, the codes do not need to be two characters. They
+    can be two numbers, three characters, one number, etc.
+    
+    If an entry in a feed does not have one of the codes in this function,
+    a warning will be recorded but the entry will still be stored, as civil.
     """
     if court.type == 'B':
         type = '3BK'
@@ -86,7 +111,7 @@ def get_case_type(case_number, court):
     elif court.type == 'M':
         type = '5MD'
     else:
-        type = re.search('(?<=-)\w{1,4}(?=-)', case_number).group() # THIS IS NOT CATCHING TYPES THAT ARE NOT 2 CHARS
+        type = re.search('(?<=-)\w{1,4}(?=-)', case_number).group()
         #District Court cases with a "bk" as case type are multidistrict (civil) not bankruptcy
         if (type == 'cv' or type == 'mc' or type == 'ct' or type == 'dp' or type == 'md'
             or type == 'cm' or type == 'fp' or type == 'gd' or type == 'ml' or type == 'pf'
@@ -99,7 +124,10 @@ def get_case_type(case_number, court):
             or type == 'AM' or type == 'AL' or type == 'DG' or type == 'GL' or type == 'PV' 
             or type == 'PP' or type == 'LV' or type == 'CB' or type == 'CM' or type == 'DS' 
             or type == 'UR' or type == 'LD' or type == 'FL' or type == 'EC' or type == 'DV' 
-            or type == 'op' or type == 'ph' or type == 'BC' or type == 'sb' or type == 'rf'):
+            or type == 'op' or type == 'ph' or type == 'BC' or type == 'sb' or type == 'rf'
+            or type == 'pq' or type == 'mn' or type == 'gs' or type == 'LB' or type == 'tw'
+            or type == 'ms' or type == 'so' or type == 'mi' or type == 'sc' or type == 'wi'
+            or type == 'rc' or type == 'la' or type == 'da' or type == 'sf'):
             type = '1CV'
         elif (type == 'cr' or type == 'mj' or type == 'po' or type == 'gj' or type == 'cb'
                 or type == 'tp' or type == 'pt' or type == 'fj' or type == 'tk'
@@ -158,10 +186,6 @@ def save_everything(last_entries_saved, entries_to_save, total_entries_duplicate
     entries_to_save = [x for x in entries_to_save if x[11] not in last_entries_saved]
     total_entries_duplicate += old_length - len(entries_to_save)
     
-    #entries_to_save.append((0 court, 1 title, 2 case_number, 3 name, 4 type, 5 is_date_filed, 
-    #                        6 case_website, 7 description, 8 doc_number, 9 doc_website, 10 time_filed, 
-    #                        11 entry_id, 12 case_id))
-    
     if entries_to_save:
         # Find the entries that already exist
         returned_entries = list(Entry.objects.filter(id__in=entry_ids).select_related('case'
@@ -185,6 +209,7 @@ def save_everything(last_entries_saved, entries_to_save, total_entries_duplicate
             
             # Update the titles, names and numbers of cases if they are different
             # MIGHT WANT TO REPLACE ALL OF THIS WITH GET_OR_CREATE IF IT IS FASTER
+            # THIS DOES NOT UPDATE CASE TYPE, WHICH MAY CHANGE IF CASE TYPE WAS UNKNOWN AND NOT CIVIL
             for case_to_update in cases_to_save:
                 if case_to_update[12] in returned_case_dict: # The keys of returned_case_dict are ids
                     case = returned_case_dict[case_to_update[12]]
@@ -207,10 +232,10 @@ def save_everything(last_entries_saved, entries_to_save, total_entries_duplicate
                     cases_to_save = None
                 except IntegrityError:
                     time.sleep(.1)
-                    print('IntegrityError with cases_to_save')
-                    # The below has been commented out for now to see if we can skip it...
-                    # returned_cases = list(Case.objects.filter(website__in=websites).values_list('website', flat=True))
-                    # cases_to_save = [x for x in cases_to_save if x.website not in returned_cases]
+                    error_msg = 'WARNING - %s - Trackcases experienced IntegrityError when saving cases, trying again.'
+                    error_msg = (error_msg % (datetime.datetime.utcnow().replace(tzinfo=utc)
+                                 ))
+                    logger.warning(error_msg)
                     Case.objects.bulk_create(cases_to_save)
                     saved_cases.extend(cases_to_save)
                     total_cases += len(cases_to_save)
@@ -232,7 +257,10 @@ def save_everything(last_entries_saved, entries_to_save, total_entries_duplicate
                     Case.objects.filter(id__in=case_ids).update(updated_time=datetime.datetime.utcnow().replace(tzinfo=utc))
                     case_ids = None
                 except OperationalError:
-                    print('OperationalError updating cases')
+                    error_msg = 'WARNING - %s - Trackcases experienced OperationalError when setting updated time of cases, trying again.'
+                    error_msg = (error_msg % (datetime.datetime.utcnow().replace(tzinfo=utc)
+                                 ))
+                    logger.warning(error_msg)
                     time.sleep(.1)
                     Case.objects.filter(id__in=case_ids).update(updated_time=datetime.datetime.utcnow().replace(tzinfo=utc))
                     case_ids = None
@@ -245,18 +273,6 @@ class Command(BaseCommand):
     help = 'Download court feeds and store docket data.'
 
     def handle(self, *args, **options):
-        #THE BELOW IS FOR DEBUGGING DELETE LATER 1/2
-        #Delete all cases/entries from after a certain time
-        # delete_check = input('Delete cases? Enter "yes"')
-        # if delete_check == 'yes':
-        #Case.objects.filter(captured_time__gte=datetime.datetime(2011, 1, 1, 4, 6, 4, 335000, tzinfo=utc)).delete()
-        #Entry.objects.filter(captured_time__gte=datetime.datetime(2011, 1, 1, 4, 6, 4, 335000, tzinfo=utc)).delete()
-        #Court.objects.all().update(last_updated=datetime.datetime(2011, 1, 1, 4, 6, 4, 335000, tzinfo=utc))
-        #print('Cases deleted.')
-        
-        #sudo -i -u postgres psql -d newstools -c 'TRUNCATE pacertracker_case CASCADE;'
-        #END DEBUGGING SECTION
-        
         #Used to calculate run time and start time
         time_started = datetime.datetime.utcnow().replace(tzinfo=utc)
         download_start = timeit.default_timer()
@@ -272,10 +288,8 @@ class Command(BaseCommand):
         
         #Get courts list
         courts = Court.objects.filter(has_feed=True).order_by('id')
-        #THIS IS FOR DEBUGGING CUT LATER 2/2
-        #downloaded_courts = courts
         
-        # #Get or create the path for storing the feeds
+        #Get or create the path for storing the feeds
         feeds_path = pacertracker.__path__[0].replace('\\','/') + '/feeds'
         if not os.path.exists(feeds_path):
             os.makedirs(feeds_path)
@@ -291,19 +305,25 @@ class Command(BaseCommand):
             for future in futures.as_completed(feed_download):
                 court = feed_download[future]
                 if future.exception() is not None:
-                    self.stdout.write('%s|"error"|"could not connect to feed (timeout or partial read)"|"%s"|"%s"' % 
-                                        (time_started,
-                                        court.get_type_display() + ': ' + court.name,
-                                        future.exception()))
+                    error_msg = 'ERROR - %s - Trackcases could not connect to feed (timeout or partial read). - %s - %s'
+                    error_msg = (error_msg % (time_started,
+                                 court.get_type_display() + ': ' + court.name,
+                                 future.exception()))
+                    logger.error(error_msg)
                     courts_broken += 1
                 else:
                     downloaded_courts.append(court)
 
         #Log download time
         download_time = timeit.default_timer() - download_start
-        self.stdout.write('%s|"download_total"|%s|%s|%s|"%s"' % (
-                            time_started, str(len(downloaded_courts)), str(courts_broken), str(courts_old),
-                            download_time))
+        info_msg = 'INFO - %s - Trackcases downloaded %s courts in %s seconds, %s were broken and %s were stale.'
+        info_msg = (info_msg % (time_started,
+                    str(len(downloaded_courts)),
+                    download_time,
+                    str(courts_broken),
+                    str(courts_old)
+                    ))
+        logger.info(info_msg)
         
         #Log feed processing time and the data processing time
         feed_start = timeit.default_timer()
@@ -333,17 +353,25 @@ class Command(BaseCommand):
             
             #If no feed was found, log the error
             if not feed or not feed.title or '404' in feed.title.text or '500' in feed.title.text or '503' in feed.title.text:
-                self.stdout.write('%s|"error"|"No feed or entries"|"%s"' % (time_started,
-                                    court.get_type_display() + ': ' + court.name))
+                error_msg = 'ERROR - %s - Trackcases found no feed or an empty feed. - %s'
+                error_msg = (error_msg % (time_started,
+                             court.get_type_display() + ': ' + court.name
+                             ))
+                logger.error(error_msg)
+                courts_broken += 1
+
                 continue
                 
             #Get the time the feed was updated
             try:
                 time_updated = parser.parse(feed.lastBuildDate.text, tzinfos=get_tzinfos())
             except:
-                self.stdout.write('%s|"error","Could not save feed (Error while getting court.last_updated)"|"%s"|"%s"' % (time_started,
-                                    court.get_type_display() + ': ' + court.name,
-                                     feed))
+                error_msg = 'ERROR - %s - Trackcases feed not saved because no last_updated found. - %s'
+                error_msg = (error_msg % (time_started,
+                             court.get_type_display() + ': ' + court.name
+                             ))
+                logger.error(error_msg)
+
                 courts_broken += 1
                 continue
 
@@ -351,11 +379,13 @@ class Command(BaseCommand):
             try:
                 compare = court.last_updated >= time_updated
             except:
-                print(court.last_updated)
-                print(time_updated)
-                self.stdout.write('%s|"error","Could not save feed (Could not get TZ with  court.last_updated)"|"%s"|"%s"' % (time_started,
-                                    court.get_type_display() + ': ' + court.name,
-                                     feed))
+                error_msg = 'ERROR - %s - Trackcases feed not saved because TZ is missing from last_updated. - %s - %s'
+                error_msg = (error_msg % (time_started,
+                             court.get_type_display() + ': ' + court.name,
+                             feed
+                             ))
+                logger.error(error_msg)
+
                 continue
             
             #If the feed is not new, go to next feed
@@ -375,10 +405,13 @@ class Command(BaseCommand):
                 try:
                     time_filed = parser.parse(entry.pubDate.text, tzinfos=get_tzinfos())
                 except (KeyError, TypeError, AttributeError):
-                    self.stdout.write('%s|"error"|"Could not save entry (invalid pub date)"|"%s"|"%s"' % 
-                                        (time_started,
-                                        court.get_type_display() + ': ' + court.name,
-                                        entry))
+                    error_msg = 'ERROR - %s - Trackcases entry not saved due to invalid pub date. - %s - %s'
+                    error_msg = (error_msg % (time_started,
+                                 court.get_type_display() + ': ' + court.name,
+                                 entry
+                                 ))
+                    logger.error(error_msg)
+
                     total_entries_broken += 1
                     continue
 
@@ -396,33 +429,43 @@ class Command(BaseCommand):
                     case_id = int(str(court.id) + '0' + re.search('[0-9]+(?=(&|$))', case_website.replace('-','')).group())
                     case_number, name = title.partition(' ')[0], title.partition(' ')[2].strip()
                 except (KeyError,AttributeError):
-                    self.stdout.write('%s|"error"|"Could not get case title, website or id."|"%s"|"%s"' % 
-                                        (time_started,
-                                        court.get_type_display() + ': ' + court.name,
-                                        entry))
+                    error_msg = 'ERROR - %s - Trackcases entry not saved due to problem with title, website or id. - %s - %s'
+                    error_msg = (error_msg % (time_started,
+                                 court.get_type_display() + ': ' + court.name,
+                                 entry
+                                 ))
+                    logger.error(error_msg)
+
                     total_entries_broken += 1
                     continue
-
+                    
                 #Get case type
                 try:
                     type = get_case_type(case_number, court)
                 except AttributeError:
-                    self.stdout.write('%s|"error"|"Could not get case type for entry (invalid case number?)"|"%s"|"%s"' % 
-                                        (time_started,
-                                        court.get_type_display() + ': ' + court.name,
-                                        entry))
+                    error_msg = 'WARNING - %s - Trackcases entry had unknown case type or bad case number, but was saved as a civil case type entry. - %s - %s'
+                    error_msg = (error_msg % (time_started,
+                                 court.get_type_display() + ': ' + court.name,
+                                 entry
+                                 ))
+                    logger.warning(error_msg)
+                    
+                    type = '1CV'
+                    
                     total_entries_broken += 1
-                    continue
 
                 #Then, get the rest of the document/docket entry
                 #information: description, doc number, doc website.
                 try:
                     description, doc_number, doc_website = get_entry_info(entry)
                 except (AttributeError, KeyError):
-                    self.stdout.write('%s|"error"|"Could not get case description, doc number or doc url."|"%s"|"%s"' % 
-                                        (time_started,
-                                        court.get_type_display() + ': ' + court.name,
-                                        entry))
+                    error_msg = 'ERROR - %s - Trackcases entry not saved due to problem with description, doc number or doc url. - %s - %s'
+                    error_msg = (error_msg % (time_started,
+                                 court.get_type_display() + ': ' + court.name,
+                                 entry
+                                 ))
+                    logger.error(error_msg)
+
                     total_entries_broken += 1
                     continue
                 
@@ -477,34 +520,52 @@ class Command(BaseCommand):
         #########
         index_start = timeit.default_timer()
         call_command('update_index', start_date=time_started.isoformat(), verbosity=0)
-        #The above update_index command will not work with the next version of Haystack (2.1.0)
-        #You should be able to use this one when that version is released...
-        #http://stackoverflow.com/questions/4358771/
-        #call_command('update_index', start_date=time_started.isoformat(), handle=['default'])
         index_time = timeit.default_timer() - index_start
 
         ###########
         #Finish up with some logging
         ###########
         feed_elapsed = str(sum([x for x in feed_times]))
-        self.stdout.write('%s|"feed_total"|"%s"' % (
-                            time_started, feed_elapsed))
+        info_msg = 'INFO - %s - Trackcases processed feeds in %s.'
+        info_msg = (info_msg % (time_started,
+                    feed_elapsed
+                    ))
+        logger.info(info_msg)
         
         data_elapsed = str(sum([x for x in data_times]))
-        self.stdout.write('%s|"data_total"|%s|%s|%s|%s|%s|%s|%s|%s|"%s"' % (
-                            time_started, str(0), str(total_cases), str(total_entries), 
-                            str(courts_broken), str(courts_old),
-                            str(total_entries_old), str(total_entries_duplicate), str(total_entries_broken),
-                            data_elapsed))
+        
+        info_msg = 'INFO - %s - Trackcases saved %s entries from %s cases to database in %s seconds.'
+        info_msg = (info_msg % (time_started,
+                    str(total_entries),
+                    str(total_cases),
+                    data_elapsed
+                    ))
+        logger.info(info_msg)
 
-        self.stdout.write('%s|"index_total"|"%s"' % (
-                            time_started, index_time))
+        info_msg = 'INFO - %s - Trackcases indexed entries in %s seconds.'
+        info_msg = (info_msg % (time_started,
+                    index_time
+                    ))
+        logger.info(info_msg)
         
         time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
         time_elapsed = str(time_elapsed).split(':')
         time_ended = datetime.datetime.utcnow().replace(tzinfo=utc)
-        self.stdout.write('%s|"time_total"|%s|%s|%s|%s|%s|%s|%s|"%s"' % (
-                            time_ended, str(total_cases), str(total_entries), 
-                            str(courts_broken), str(courts_old),
-                            str(total_entries_old), str(total_entries_duplicate), str(total_entries_broken),
-                            time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
+        
+        logger.info('INFO - %s - Trackcases finished after %s' % ( 
+                    time_ended, 
+                    time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
+        logger.info('INFO - %s - Trackcases saved %s cases and %s entries.' % (
+                    time_ended, 
+                    str(total_cases), 
+                    str(total_entries)))
+        logger.info('INFO - %s - Trackcases found %s broken courts and %s stale courts.' % (
+                    time_ended, 
+                    str(courts_broken), 
+                    str(courts_old)))
+        logger.info('INFO - %s - Trackcases found %s old entries, %s duplicate entries and %s broken entries.' % (
+                    time_ended, 
+                    str(total_entries_old), 
+                    str(total_entries_duplicate), 
+                    str(total_entries_broken)))
+

@@ -34,4 +34,7 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
-pacertracker/migrations/0002_auto__add_unique_case_website.py
+
+# PACER Tracker
+/pacertracker/archives
+/pacertracker/feeds

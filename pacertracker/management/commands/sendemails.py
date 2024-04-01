@@ -1,5 +1,7 @@
 import datetime
 import operator
+import logging
+
 from time import sleep
 from collections import OrderedDict
 from html2text import html2text
@@ -7,7 +9,6 @@ from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
-from django.utils.timezone import utc
 from django.core import mail
 from django.template.loader import get_template
 from django.template import Context
@@ -19,12 +20,8 @@ from haystack.query import SearchQuerySet
 
 from pacertracker.models import Court, Case, Entry, Alert
 
-#THE BELOW IS FOR DEBUGGING DELETE LATER
-#import logging
-#l = logging.getLogger('django.db.backends')
-#l.setLevel(logging.DEBUG)
-#l.addHandler(logging.StreamHandler())
-
+utc = datetime.timezone.utc
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Email PacerTracker live updates.'
@@ -170,10 +167,18 @@ class Command(BaseCommand):
         recipients = ''
         for message in messages:
             recipients += message.to[0] + ','
+            
+        final_msg = 'INFO - %s - %s sendemails took %s. Sent %s email(s) to %s.'
+        final_msg = (final_msg % (time_started,
+                                  'Daily' if options['daily'] else 'Live',
+                                  time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' second(s)',
+                                  str(len(messages)),
+                                  recipients if recipients else 'no one'))
+        logger.info(final_msg)
+                                  
 
-        self.stdout.write('%s|"totals"|"%s"|%s|"%s"|"%s"' % (time_started, 'daily' if options['daily'] else 'live',
-                            str(len(messages)), 
-                            time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' second(s)',
-                            recipients))
-        
+        # self.stdout.write('%s|"totals"|"%s"|%s|"%s"|"%s"' % (time_started, 'daily' if options['daily'] else 'live',
+                            # str(len(messages)), 
+                            # time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' second(s)',
+                            # recipients))
         
