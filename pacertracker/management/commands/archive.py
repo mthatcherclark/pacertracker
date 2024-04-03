@@ -82,7 +82,7 @@ def update_entries_file(filename, io_type, fields, filter_from, filter_to=None):
                                            ).order_by('captured_time'
                                            ).values_list(*fields)
         
-        for entry in entries:
+        for entry in entries[:2000000]:
             writer.writerow(entry)
     
     return None
@@ -133,7 +133,7 @@ class Command(BaseCommand):
             
             cases = Case.objects.all().values_list(*cases_fields)
             
-            for case in cases:
+            for case in cases[:2000000]:
                 writer.writerow(case)
         
         # If the entries file does not exist for this year, 
@@ -179,6 +179,15 @@ class Command(BaseCommand):
                                 entries_fields, 
                                 filter_from=last_time)
         
+        # Used for tracking time it takes to process data and then upload
+        time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
+        time_elapsed = str(time_elapsed).split(':')
+        time_ended = datetime.datetime.utcnow().replace(tzinfo=utc)
+        
+        logger.info('INFO - %s - Archive finished creating files after %s' % ( 
+                    time_ended, 
+                    time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
+        
         # Now, we upload to Internet Archive
         if old_file and not options['noupload']:
             r = upload(settings.IA_IDENTIFIER, 
@@ -204,7 +213,7 @@ class Command(BaseCommand):
         time_elapsed = str(time_elapsed).split(':')
         time_ended = datetime.datetime.utcnow().replace(tzinfo=utc)
         
-        logger.info('INFO - %s - Archive finished after %s' % ( 
+        logger.info('INFO - %s - Archive finished uploading after %s' % ( 
                     time_ended, 
                     time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
 
