@@ -4,6 +4,7 @@ import timeit
 import time
 import csv
 import logging
+import zipfile
 
 from dateutil import parser
 from dateutil.tz import gettz
@@ -147,7 +148,7 @@ class Command(BaseCommand):
             old_entries_filename = ('%s/%sentries.csv' % (feeds_path, datetime.date.today().year -1))
             old_file = True
             
-            if not os.path.exists(old_entries_filename): # Old one nonexistent, create for this year
+            if not os.path.exists(old_entries_filename): # Old one nonexistent, create current year only
                 update_entries_file(entries_filename, 
                                     'w', 
                                     entries_fields, 
@@ -179,12 +180,43 @@ class Command(BaseCommand):
                                 entries_fields, 
                                 filter_from=last_time)
         
-        # Used for tracking time it takes to process data and then upload
+        # Used for tracking time it takes to create files, zip and then upload
         time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
         time_elapsed = str(time_elapsed).split(':')
         time_ended = datetime.datetime.utcnow().replace(tzinfo=utc)
         
         logger.info('INFO - %s - Archive finished creating files after %s' % ( 
+                    time_ended, 
+                    time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
+                    
+                    
+        # ZIP the files for upload
+        # ZIP Filename conventions
+        courts_zipname = ('%s/courts.zip' % (feeds_path))
+        cases_zipname = ('%s/cases.zip' % (feeds_path))
+        entries_zipname = ('%s/%sentries.zip' % (feeds_path, datetime.date.today().year))
+        old_entries_zipname = ('%s/%sentries.zip' % (feeds_path, datetime.date.today().year))
+        
+        
+        with zipfile.ZipFile(courts_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
+            zfile.write(courts_filename)
+        
+        with zipfile.ZipFile(cases_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
+            zfile.write(cases_filename)        
+        
+        with zipfile.ZipFile(entries_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
+            zfile.write(entries_filename)
+       
+        if old_file:
+            with zipfile.ZipFile(old_entries_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
+                zfile.write(old_entries_filename)
+            
+        # Used for tracking time it takes to create files, zip and then upload
+        time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
+        time_elapsed = str(time_elapsed).split(':')
+        time_ended = datetime.datetime.utcnow().replace(tzinfo=utc)
+        
+        logger.info('INFO - %s - Archive finished zipping files after %s' % ( 
                     time_ended, 
                     time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
         
@@ -201,12 +233,6 @@ class Command(BaseCommand):
                        access_key=settings.IA_ACCESS_KEY, 
                        secret_key=settings.IA_SECRET_KEY)
             r[0].status_code
-
-        time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
-        time_elapsed = str(time_elapsed).split(':')
-        time_ended = datetime.datetime.utcnow().replace(tzinfo=utc)
-        print(time_ended)
-        print(time_elapsed)
 
         # Log stuff
         time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
