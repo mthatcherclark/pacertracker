@@ -223,13 +223,13 @@ class Command(BaseCommand):
         # Now, we upload to Internet Archive
         if old_file and not options['noupload']:
             r = upload(settings.IA_IDENTIFIER, 
-                       files=[courts_filename,cases_filename,entries_filename,old_entries_filename], 
+                       files=[courts_zipname,cases_zipname,entries_zipname,old_entries_zipname], 
                        access_key=settings.IA_ACCESS_KEY, 
                        secret_key=settings.IA_SECRET_KEY)
             r[0].status_code
         elif not options['noupload']:
             r = upload(settings.IA_IDENTIFIER, 
-                       files=[courts_filename,cases_filename,entries_filename], 
+                       files=[courts_zipname,cases_zipname,entries_zipname], 
                        access_key=settings.IA_ACCESS_KEY, 
                        secret_key=settings.IA_SECRET_KEY)
             r[0].status_code
