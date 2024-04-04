@@ -2,6 +2,7 @@ import sys
 import re
 import requests
 import datetime
+import logging
 
 from bs4 import BeautifulSoup
 from concurrent import futures
@@ -14,17 +15,20 @@ from django.core.management.base import BaseCommand, CommandError
 
 from pacertracker.models import Court
 
+utc = datetime.timezone.utc
+logger = logging.getLogger(__name__)
+
 def get_type(raw_name, ecf_url):
     if 'Supreme Court' in raw_name:
         type = 'S'
-    elif 'Pacer Case' in raw_name:
-        type = False
+    elif 'Pacer Case' in raw_name: # Not a court
+        type = 'BAD'
     elif '(web)' in raw_name:
-        type = False
-    elif '(asbestos)' in raw_name:
-        type = False
-    elif 'BAP' in raw_name:
-        type = False  
+        type = 'BAD'
+    elif '(asbestos)' in raw_name: # Does not have a feed
+        type = 'BAD'
+    elif 'BAP' in raw_name: # Does not have a feed
+        type = 'BAD'
     elif ('ecf.ca' in ecf_url
         and 'b.usc' not in ecf_url 
         and 'd.usc' not in ecf_url):
@@ -161,11 +165,17 @@ def update_court(tr_tag):
         if base_ecf_url[-1] != '/':
             base_ecf_url += '/'
     
-    if get_type(raw_name, base_ecf_url):
-        type = get_type(raw_name, base_ecf_url)
-    else:
-        print('Did not save %s.' % raw_name)
+    type = get_type(raw_name, base_ecf_url)
+    
+    if not type:
+        error_msg = 'WARNING - %s - Loadcourts did not save %s. Could not get court type.'
+        error_msg = (error_msg % (datetime.datetime.utcnow().replace(tzinfo=utc),
+                     raw_name
+                     ))
+        logger.warning(error_msg)
         return None
+    elif type == 'BAD':
+        return None # For links to no-feed courts or the PACER case locator
     
     # Appeals courts have a different info page.
     # While the Supreme Court has no normal info page, we will check
@@ -197,9 +207,20 @@ def update_court(tr_tag):
     
     if court_check.exists() and court_check.count() == 1:
         if has_feed and not court_check[0].has_feed and 'nyed' not in feed_url:
-            print('This court now has a feed: %s - %s' % (name, court_check[0].get_type_display()))
+            info_msg = 'INFO - %s - Loadcourts found this court now has a feed: %s - %s.'
+            info_msg = (info_msg % (datetime.datetime.utcnow().replace(tzinfo=utc),
+                         name,
+                         court_check[0].get_type_display()
+                         ))
+            logger.info(info_msg)
+            
         elif not has_feed and court_check[0].has_feed and 'nyed' not in feed_url: # See below about NYED
-            print('This court no longer has a feed: %s - %s' % (name, court_check[0].get_type_display()))
+            warning_msg = 'WARNING - %s - Loadcourts found this court no longer has a feed: %s - %s.'
+            warning_msg = (warning_msg % (datetime.datetime.utcnow().replace(tzinfo=utc),
+                         name,
+                         court_check[0].get_type_display()
+                         ))
+            logger.warning(warning_msg)
         
         # New York Eastern District Court has a different feed URL from all other courts
         # https://ecf.nyed.uscourts.gov/cgi-bin/readyDockets.pl
@@ -217,11 +238,26 @@ def update_court(tr_tag):
                     last_updated=last_updated, publishes_all=publishes_all, 
                     filing_types=filing_types)
         if not new:
-            print('Error, this court is already entered, possibly more than once: %s.' % name)
+            info_msg = 'INFO - %s - Loadcourts found this court was already entered, possibly more than once: %s - %s.'
+            info_msg = (info_msg % (datetime.datetime.utcnow().replace(tzinfo=utc),
+                         type,
+                         name
+                         ))
+            logger.info(info_msg)
         elif new and not has_feed:
-            print('Added this court, but it has no feed: %s - %s' % (type, name))
+            info_msg = 'INFO - %s - Loadcourts added this court, but it has no feed: %s - %s.'
+            info_msg = (info_msg % (datetime.datetime.utcnow().replace(tzinfo=utc),
+                         type,
+                         name
+                         ))
+            logger.info(info_msg)
         else:
-            print('Added this court: %s - %s' % (type, name))
+            info_msg = 'INFO - %s - Loadcourts added this court: %s - %s.'
+            info_msg = (info_msg % (datetime.datetime.utcnow().replace(tzinfo=utc),
+                         type,
+                         name
+                         ))
+            logger.info(info_msg)
     
     return None
 
@@ -231,8 +267,7 @@ class Command(BaseCommand):
     help = 'Load and update the status of each federal court RSS feed.'
 
     def handle(self, *args, **options):
-        print(datetime.datetime.now())
-        start = timer()
+        time_started = datetime.datetime.utcnow().replace(tzinfo=utc)
         
         requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
     
@@ -257,5 +292,9 @@ class Command(BaseCommand):
                 except Exception as exc:
                     raise exc
         
-        end = timer()
-        print(end-start)
+        time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
+        time_elapsed = str(time_elapsed).split(':')
+        time_ended = datetime.datetime.utcnow().replace(tzinfo=utc)
+        logger.info('INFO - %s - Loadcourts finished after %s' % ( 
+                    time_ended, 
+                    time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))

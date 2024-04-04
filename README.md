@@ -41,7 +41,7 @@ Specify the email address from which emails will be sent in your settings.py.
 ALERTS_FROM_EMAIL = 'alerts@mydomain.com'
 ```
 
-Some PACER Tracker forms use a large number of fields in its forms. An error will be generated 
+Some PACER Tracker forms use a large number of fields. An error will be generated 
 unless the max number of fields check is disabled.
 
 ```django
@@ -52,8 +52,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 Requirements
 ============
 
-PACER Tracker scans for filings and sends emails every two minutes 
-on average with the following setup.
+PACER Tracker scans for filings and sends emails on average every two minutes with the following setup.
 
 - Two virtual cores @ 3.2ghz and 4GB of RAM
 - PostgreSQL 14.10
