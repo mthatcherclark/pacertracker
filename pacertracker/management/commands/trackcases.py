@@ -127,7 +127,7 @@ def get_case_type(case_number, court):
             or type == 'op' or type == 'ph' or type == 'BC' or type == 'sb' or type == 'rf'
             or type == 'pq' or type == 'mn' or type == 'gs' or type == 'LB' or type == 'tw'
             or type == 'ms' or type == 'so' or type == 'mi' or type == 'sc' or type == 'wi'
-            or type == 'rc' or type == 'la' or type == 'da' or type == 'sf'):
+            or type == 'rc' or type == 'la' or type == 'da' or type == 'sf' or type == 'dm'):
             type = '1CV'
         elif (type == 'cr' or type == 'mj' or type == 'po' or type == 'gj' or type == 'cb'
                 or type == 'tp' or type == 'pt' or type == 'fj' or type == 'tk'

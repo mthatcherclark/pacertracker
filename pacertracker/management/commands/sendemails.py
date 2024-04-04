@@ -24,7 +24,7 @@ utc = datetime.timezone.utc
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    help = 'Email PacerTracker live updates.'
+    help = 'Send PACER Tracker email alerts.'
 
     def add_arguments(self, parser):
         parser.add_argument(
