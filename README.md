@@ -48,11 +48,15 @@ unless the max number of fields check is disabled.
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 ```
 
+
 Requirements
 ============
 
-With the following setup, PACER Tracker scans for filings and sends emails every two minutes.
+PACER Tracker scans for filings and sends emails every two minutes 
+on average with the following setup.
 
-- Server
-- Postgres
-- Solr
+- Two virtual cores @ 3.2ghz and 4GB of RAM
+- PostgreSQL 14.10
+- Solr 9.0.0
+- Python 3.10.5
+- Django 3.2.13

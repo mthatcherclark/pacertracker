@@ -9,21 +9,21 @@ README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
 
 setup(
     name = "pacertracker",
-    version = "0.1",
+    version = "1.0",
     packages=['pacertracker'],
     include_package_data=True,
-    # license = "MIT", # not yet
-    description = ("A tool to help reporters track federal lawsuits filed in PACER"),
+    license = "MIT",
+    description = ("A tool to help reporters track federal lawsuits filed in PACER."),
     long_description=README,
-    url = "http://github.com/newsday/checkup",
+    url = "https://github.com/mthatcherclark/pacertracker/",
     author = "Matt Clark",
-    author_email = "mr.matthew.clark@gmail.com",
-    keywords = "newstools newsday pacertracker lawsuit pacer track court bankruptcy",
+    author_email = "mattdatajourno@gmail.com",
+    keywords = "pacertracker lawsuit pacer track court bankruptcy criminal civil",
     install_requires=reqs,
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     ],
