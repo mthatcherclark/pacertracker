@@ -135,7 +135,7 @@ def get_case_type(case_number, court):
                 or type == 'mw' or type == 'r' or type == 'sm' or type == 'm'
                 or type == 'te' or type == 'mr' or type == 'mb'
                 or type == 'mm' or type == '~gr' or type == 'y' or type == 'mj' 
-                or type == 'wt'):
+                or type == 'wt' or type == 'tr'):
             type = '2CR'
         elif type == 'vc' or type == 'vv':
             type = '6VC'
@@ -514,9 +514,9 @@ class Command(BaseCommand):
             court.save(update_fields=['last_updated'])
             feed_times.append(timeit.default_timer() - feed_start)
             
-            
+        
         ##########
-        #Add everything to the Solr index!
+        # Add everything to the Solr index!
         #########
         index_start = timeit.default_timer()
         call_command('update_index', start_date=time_started.isoformat(), verbosity=0)
