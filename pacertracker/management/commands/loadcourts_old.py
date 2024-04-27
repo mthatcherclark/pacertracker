@@ -3,7 +3,6 @@ import re
 import requests
 import datetime
 import logging
-import json
 
 from bs4 import BeautifulSoup
 from concurrent import futures
@@ -78,7 +77,7 @@ def requests_retry_session(
     
     return session
     
-def check_feed(json_check, feed_url):
+def check_feed(info_url, feed_url):
     if feed_url != '':
         # Try to download the feed and see if it has entries
         try:
@@ -128,21 +127,41 @@ def check_feed(json_check, feed_url):
     
     # Even if the feed was not properly formatted,
     # we still need to mark in PACER Tracker those courts that 
-    # are listed as having a feed in the JSON
-    if not feed_check and json_check:
+    # are listed as having a feed on the courts website
+    try:
+        response = requests.get(info_url, timeout=5)
+    except requests.exceptions.ReadTimeout as e:
+        response = None
+    except requests.exceptions.ConnectionError as e:
+        # Max retries exceeded
+        response = None
+
+    if 'servlet/TransportRoom' in info_url:
+        # Appeals courts have a different info page.
+        if response and 'RSS Feed' in response.text:
+            info_check = True
+        else:
+            info_check = False
+    elif response:
+        soup = BeautifulSoup(response.text, 'lxml')
+        info_check = soup.find('i', class_='fa-rss')
+    else:
+        info_check = False
+        
+    if not feed_check and info_check:
         feed_check = True
         publishes_all = False
         filing_types = ''
 
     return feed_check, publishes_all, filing_types
     
-def update_court(metadata):
-    raw_name = metadata['title']
+def update_court(tr_tag):
+    raw_name = tr_tag.find('td', class_='views-field-court-name').a.string
     if 'Supreme Court' in raw_name:
         # Supreme Court has no base_ecf_url so we just give it a fake one...
         base_ecf_url = 'https://ecf.supremecourt.gov/'
     else:
-        base_ecf_url = metadata['login_url']
+        base_ecf_url = tr_tag.find('td', class_='views-field-court-app-type').a['href']
         if base_ecf_url[-1] != '/':
             base_ecf_url += '/'
     
@@ -158,12 +177,18 @@ def update_court(metadata):
     elif type == 'BAD':
         return None # For links to no-feed courts or the PACER case locator
     
-    # If the JSON has an RSS URL, that does not mean it has
-    # an RSS feed and also may mean that it has a "hidden" one
-    # So, we use it as one indicator of a feed
-    json_check = True if 'rss_url' in metadata else False
+    # Appeals courts have a different info page.
+    # While the Supreme Court has no normal info page, we will check
+    # the normal info page to see if an RSS icon pops up anyway.
+    if type == 'A':
+        info_url_base = base_ecf_url
+        info_url_ext = 'n/beam/servlet/TransportRoom?servlet=CourtInfo.jsp'
+        info_url = info_url_base + info_url_ext
+    else:
+        info_url_base = 'https://pacer.uscourts.gov'
+        info_url_ext = tr_tag.find('td', class_='views-field-court-name').a['href']
+        info_url = info_url_base + info_url_ext
     
-    # Truncates names to jurisdiction
     name = get_name(raw_name)
     
     # Add the feed url even if it doesn't say it has a feed
@@ -174,7 +199,7 @@ def update_court(metadata):
     else:
         feed_url = ''
     
-    has_feed, publishes_all, filing_types = check_feed(json_check, feed_url)
+    has_feed, publishes_all, filing_types = check_feed(info_url, feed_url)
     
     website = base_ecf_url.replace('https://ecf','http://www')
     
@@ -245,18 +270,23 @@ class Command(BaseCommand):
         time_started = datetime.datetime.utcnow().replace(tzinfo=utc)
         
         requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    
+        response = requests.get('https://pacer.uscourts.gov/file-case/court-cmecf-lookup')
+        
+        soup = BeautifulSoup(response.text, 'lxml')
+        
+        #urllib2.urlopen('https://pacer.uscourts.gov/file-case/court-cmecf-lookup/data.json')
 
-        response = requests.get('https://pacer.uscourts.gov/file-case/court-cmecf-lookup/data.json')
-        json_metadata = json.loads(response.text)
-        json_metadata = json_metadata['data']
+        tbody = soup.find('tbody')
+        tr_tags = tbody.find_all('tr')
         
         # Add or update courts
         with futures.ThreadPoolExecutor(max_workers=15) as executor:
             results = []
-            for metadata in json_metadata:
+            for tag in tr_tags:
                 results.append(
                     executor.submit(
-                        update_court, metadata
+                        update_court, tag
                     )
                 )
             for result in futures.as_completed(results):
