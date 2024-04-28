@@ -158,8 +158,10 @@ def get_entry_info(entry):
     else:
         description = re.search('(?<=\[).+(?=\])', entry_summary).group()
     
-    number = re.search('(?<=">)\d+(?=</a>)', entry_summary)
-    website = re.search('(?<=a href=").+(?=">)', entry_summary)
+    #number = re.search('(?<=">)\d+(?=</a>)', entry_summary)
+    #website = re.search('(?<=a href=").+(?=">)', entry_summary)
+    number = re.search('(?<=\>)(\d+)(?=\<)', entry_summary)
+    website = re.search('(?<=href=")(https?:\/\/[^"]+)', entry_summary)
     
     if number and website:
         return description, int(number.group()), website.group()
