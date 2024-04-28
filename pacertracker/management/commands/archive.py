@@ -6,6 +6,8 @@ import csv
 import logging
 import zipfile
 
+from os.path import basename
+
 from dateutil import parser
 from dateutil.tz import gettz
 from internetarchive import upload
@@ -199,17 +201,17 @@ class Command(BaseCommand):
         
         
         with zipfile.ZipFile(courts_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-            zfile.write(courts_filename)
+            zfile.write(courts_filename, basename(courts_filename))
         
         with zipfile.ZipFile(cases_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-            zfile.write(cases_filename)        
+            zfile.write(cases_filename, basename(cases_filename))
         
         with zipfile.ZipFile(entries_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-            zfile.write(entries_filename)
+            zfile.write(entries_filename, basename(entries_filename))
        
         if old_file:
             with zipfile.ZipFile(old_entries_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-                zfile.write(old_entries_filename)
+                zfile.write(old_entries_filename, basename(old_entries_filename))
             
         # Used for tracking time it takes to create files, zip and then upload
         time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
