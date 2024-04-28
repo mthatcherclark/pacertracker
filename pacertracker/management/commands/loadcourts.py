@@ -128,7 +128,9 @@ def check_feed(json_check, feed_url):
     
     # Even if the feed was not properly formatted,
     # we still need to mark in PACER Tracker those courts that 
-    # are listed as having a feed in the JSON
+    # are listed as having a feed in the JSON.
+    # This may be necessary when feeds temporarily go down
+    # during the period loadcourts checks them.
     if not feed_check and json_check:
         feed_check = True
         publishes_all = False

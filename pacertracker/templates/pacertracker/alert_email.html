@@ -83,7 +83,7 @@ text-decoration:none;
                         <span style="font-family: arial,  helvetica, sans-serif;font-size: 12px;color: #666666;">
                         {{ case.case.get_type_display }} case filed in {{ case.case.court.name }} {{ case.case.court.get_type_display }}
                         {% if case.case.is_date_filed %}
-                            on {{ case.case.captured_date|date:"SHORT_DATE_FORMAT" }}</span>
+                            on {{ case.case.captured_date|timezone:"America/New_York"|date:"SHORT_DATE_FORMAT" }}</span>
                         {% else %}
                             </span>
                         {% endif %}
@@ -101,9 +101,9 @@ text-decoration:none;
                             <td>
                             <span style="font-family: arial,  helvetica, sans-serif;font-size: 12px;color: #666666;">&#8226; 
                             {% if entry.website %}
-                                <a href="{{ entry.website }}">{% if entry.number %}{{ entry.number }} {% endif %}{{ entry.description }}</a> ({{ entry.time_filed|date:"m/d/y h:i a" }})
+                                <a href="{{ entry.website }}">{% if entry.number %}{{ entry.number }} {% endif %}{{ entry.description }}</a> ({{ entry.time_filed|timezone:"America/New_York"|date:"m/d/y h:i a" }})
                             {% else %}
-                                {{ entry.description }}, ({{ entry.time_filed|date:"m/d/y g:i a" }})
+                                {{ entry.description }}, ({{ entry.time_filed|timezone:"America/New_York"|date:"m/d/y g:i a" }})
                             {% endif %}
                             </span>
                             </td>
