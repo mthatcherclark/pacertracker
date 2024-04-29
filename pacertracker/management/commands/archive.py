@@ -85,7 +85,7 @@ def update_entries_file(filename, io_type, fields, filter_from, filter_to=None):
                                            ).order_by('captured_time'
                                            ).values_list(*fields)
         
-        for entry in entries[:2000000]:
+        for entry in entries:
             writer.writerow(entry)
     
     return None
