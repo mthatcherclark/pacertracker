@@ -136,7 +136,7 @@ class Command(BaseCommand):
             
             cases = Case.objects.all().values_list(*cases_fields)
             
-            for case in cases[:2000000]:
+            for case in cases:
                 writer.writerow(case)
         
         # If the entries file does not exist for this year, 
