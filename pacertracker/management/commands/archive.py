@@ -75,15 +75,15 @@ def update_entries_file(filename, io_type, fields, filter_from, filter_to=None):
             entries = Entry.objects.filter(captured_time__gt=filter_from,
                                            captured_time__year=filter_to
                                            ).order_by('captured_time'
-                                           ).values_list(*fields)
+                                           ).values_list(*fields).iterator(chunk_size=1000)
         elif io_type == 'w': # New files contain all entries for current year
             entries = Entry.objects.filter(captured_time__year=filter_from
                                            ).order_by('captured_time'
-                                           ).values_list(*fields)
+                                           ).values_list(*fields).iterator(chunk_size=1000)
         else:
             entries = Entry.objects.filter(captured_time__gt=filter_from
                                            ).order_by('captured_time'
-                                           ).values_list(*fields)
+                                           ).values_list(*fields).iterator(chunk_size=1000)
         
         for entry in entries:
             writer.writerow(entry)
@@ -123,7 +123,7 @@ class Command(BaseCommand):
             writer = csv.writer(csvfile)
             writer.writerow(court_fields)
             
-            courts = Court.objects.all().values_list(*court_fields)
+            courts = Court.objects.all().values_list(*court_fields).iterator(chunk_size=1000)
             
             for court in courts:
                 writer.writerow(court)
@@ -134,7 +134,7 @@ class Command(BaseCommand):
             writer = csv.writer(csvfile)
             writer.writerow(cases_fields)
             
-            cases = Case.objects.all().values_list(*cases_fields)
+            cases = Case.objects.all().values_list(*cases_fields).iterator(chunk_size=1000)
             
             for case in cases:
                 writer.writerow(case)
