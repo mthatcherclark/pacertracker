@@ -14,7 +14,7 @@ plaintiff or the primary defendant.
 The app supplies a web interface for users (who are added by an admin) to setup alerts, 
 change their password and setup groups of frequently-used courts.
 
-![PACER Tracker user interface](/screenshot.jpg?raw=true "PACER Tracker User Interface")
+![PACER Tracker user interface](screenshot.jpg?raw=true "PACER Tracker User Interface")
 
 Management Commands
 ===================
