@@ -151,6 +151,7 @@ class Command(BaseCommand):
             old_file = True
             
             if not os.path.exists(old_entries_filename): # Old one nonexistent, create current year only
+                old_file = False
                 update_entries_file(entries_filename, 
                                     'w', 
                                     entries_fields, 

@@ -9,7 +9,9 @@ PACER Tracker has tracked hundreds of millions of entries in millions of cases.
 PACER Tracker allows reporters to receive live or daily alerts for specific cases they
 wish to track or for cases with parties that match keywords they specify. For 
 instance, a keyword of "ACME" would return any case where ACME Corp. is the primary 
-plaintiff or the primary defendant.
+plaintiff or the primary defendant. That could result in a business reporter writing
+a story. Similarly, an education reporter could set up an alert for "school district" 
+and receive alerts about cases involving school districts in their area.
 
 The app supplies a web interface for users (who are added by an admin) to setup alerts, 
 change their password and setup groups of frequently-used courts.
