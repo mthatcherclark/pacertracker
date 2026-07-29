@@ -76,7 +76,7 @@ def update_entries_file(filename, io_type, fields, filter_from, filter_to=None):
                                            captured_time__year=filter_to
                                            ).order_by('captured_time'
                                            ).values_list(*fields).iterator(chunk_size=10000)
-        elif io_type == 'w': # New files contain all entries for current year
+        elif io_type == 'w': # New files contain all entries for the given year
             entries = Entry.objects.filter(captured_time__year=filter_from
                                            ).order_by('captured_time'
                                            ).values_list(*fields).iterator(chunk_size=10000)
@@ -87,6 +87,13 @@ def update_entries_file(filename, io_type, fields, filter_from, filter_to=None):
         
         for entry in entries:
             writer.writerow(entry)
+    
+    return None
+
+
+def zip_file(zipname, filename):
+    with zipfile.ZipFile(zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
+        zfile.write(filename, basename(filename))
     
     return None
     
@@ -102,6 +109,14 @@ class Command(BaseCommand):
             dest='noupload',
             default=False,
             help='Do not upload to the Internet Archive.',
+        )
+        parser.add_argument(
+            '--rebuild',
+            action='store_true',
+            dest='rebuild',
+            default=False,
+            help='Rebuild the entries CSV for every year still in the database, '
+                 'overwriting any existing annual entries files.',
         )
 
     def handle(self, *args, **options):
@@ -139,23 +154,43 @@ class Command(BaseCommand):
             for case in cases:
                 writer.writerow(case)
         
+        # Keeps track of every entries file we write this run so we can
+        # zip and upload them all at the end.
+        entries_filenames = []
+        
+        if options['rebuild']:
+            # Rebuild one entries file per year for every year that still
+            # has entries in the database. Overwrites any existing files.
+            years = Entry.objects.dates('captured_time', 'year')
+            
+            for year in years:
+                year_filename = ('%s/%sentries.csv' % (feeds_path, year.year))
+                
+                update_entries_file(year_filename, 
+                                    'w', 
+                                    entries_fields, 
+                                    year.year)
+                
+                entries_filenames.append(year_filename)
+                
+                logger.info('INFO - Rebuilt entries file for %s' % year.year)
+        
         # If the entries file does not exist for this year, 
         # check if it exists for the prior year.
         # If it exists for prior year, make sure the prior file 
         # has all the entries for that year by using ID and date filters.
         # Then, create the new file and add to it.
         # If there is no prior file, just create the new file for this year
-        old_file = False # For keeping track of whether there is an old file to be uploaded
-        if not os.path.exists(entries_filename):
-            old_entries_filename = ('%s/%sentries.csv' % (feeds_path, datetime.date.today().year -1))
-            old_file = True
+        elif not os.path.exists(entries_filename):
+            old_entries_filename = ('%s/%sentries.csv' % (feeds_path, datetime.date.today().year - 1))
             
             if not os.path.exists(old_entries_filename): # Old one nonexistent, create current year only
-                old_file = False
                 update_entries_file(entries_filename, 
                                     'w', 
                                     entries_fields, 
                                     datetime.date.today().year)
+                
+                entries_filenames.append(entries_filename)
             else:
                 # If old file exists, first add remaining entries for prior year
                 last_time = get_last_line(old_entries_filename, 1).split(',')[2]
@@ -172,6 +207,9 @@ class Command(BaseCommand):
                                     'w', 
                                     entries_fields, 
                                     datetime.date.today().year)
+                
+                entries_filenames.append(old_entries_filename)
+                entries_filenames.append(entries_filename)
         
         else: # If file exists, append most recent entries to it...
             # First, get the last ID in the CSV...
@@ -182,6 +220,8 @@ class Command(BaseCommand):
                                 'a', 
                                 entries_fields, 
                                 filter_from=last_time)
+            
+            entries_filenames.append(entries_filename)
         
         # Used for tracking time it takes to create files, zip and then upload
         time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
@@ -197,22 +237,16 @@ class Command(BaseCommand):
         # ZIP Filename conventions
         courts_zipname = ('%s/courts.zip' % (feeds_path))
         cases_zipname = ('%s/cases.zip' % (feeds_path))
-        entries_zipname = ('%s/%sentries.zip' % (feeds_path, datetime.date.today().year))
-        old_entries_zipname = ('%s/%sentries.zip' % (feeds_path, datetime.date.today().year))
         
+        zip_file(courts_zipname, courts_filename)
+        zip_file(cases_zipname, cases_filename)
         
-        with zipfile.ZipFile(courts_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-            zfile.write(courts_filename, basename(courts_filename))
-        
-        with zipfile.ZipFile(cases_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-            zfile.write(cases_filename, basename(cases_filename))
-        
-        with zipfile.ZipFile(entries_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-            zfile.write(entries_filename, basename(entries_filename))
-       
-        if old_file:
-            with zipfile.ZipFile(old_entries_zipname, "w", zipfile.ZIP_DEFLATED) as zfile:
-                zfile.write(old_entries_filename, basename(old_entries_filename))
+        # Zip every entries file we created or updated this run
+        entries_zipnames = []
+        for filename in entries_filenames:
+            zipname = filename.replace('.csv', '.zip')
+            zip_file(zipname, filename)
+            entries_zipnames.append(zipname)
             
         # Used for tracking time it takes to create files, zip and then upload
         time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
@@ -224,15 +258,9 @@ class Command(BaseCommand):
                     time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
         
         # Now, we upload to Internet Archive
-        if old_file and not options['noupload']:
+        if not options['noupload']:
             r = upload(settings.IA_IDENTIFIER, 
-                       files=[courts_zipname,cases_zipname,entries_zipname,old_entries_zipname], 
-                       access_key=settings.IA_ACCESS_KEY, 
-                       secret_key=settings.IA_SECRET_KEY)
-            r[0].status_code
-        elif not options['noupload']:
-            r = upload(settings.IA_IDENTIFIER, 
-                       files=[courts_zipname,cases_zipname,entries_zipname], 
+                       files=[courts_zipname, cases_zipname] + entries_zipnames, 
                        access_key=settings.IA_ACCESS_KEY, 
                        secret_key=settings.IA_SECRET_KEY)
             r[0].status_code
@@ -245,4 +273,3 @@ class Command(BaseCommand):
         logger.info('INFO - %s - Archive finished uploading after %s' % ( 
                     time_ended, 
                     time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' seconds'))
-
