@@ -1,0 +1,17 @@
+{% extends "pacertracker/email_base.html" %}
+
+{% block email_title %}Your new PACER Tracker account{% endblock %}
+
+{% block email_content %}
+            <p style="font-family: arial, helvetica, sans-serif;font-size: 14px;">You're receiving this email because you have received a free account to PACER Tracker.</p>
+
+            <p style="font-family: arial, helvetica, sans-serif;font-size: 14px;">Your user name is: {{ user.get_username }}</p>
+
+            <p style="font-family: arial, helvetica, sans-serif;font-size: 14px;">Please go to the following page and choose a password:</p>
+
+            <p style="font-family: arial, helvetica, sans-serif;font-size: 14px;"><a href="{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}">{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}</a></p>
+
+            <p style="font-family: arial, helvetica, sans-serif;font-size: 14px;">This link expires in three days. If it has expired by the time you get to it, go to the <a href="{{ protocol }}://{{ domain }}{% url 'login' %}">log-in page</a> and use the "Forgot password" link instead. That works at any time.</p>
+
+            <p style="font-family: arial, helvetica, sans-serif;font-size: 14px;">Thanks for using PACER Tracker.</p>
+{% endblock email_content %}

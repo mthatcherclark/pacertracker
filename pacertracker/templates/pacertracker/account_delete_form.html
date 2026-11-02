@@ -1,0 +1,30 @@
+{% extends "pacertracker/base.html" %}
+
+{% block title %}PACER Tracker - Delete your account{% endblock %}
+
+{% block content %}
+<div class="container" id="container-basic">
+	<h2>Delete your account</h2>
+
+	<p class="alert alert-danger">This deletes your account, your {{ alert_count }} alert(s) and your
+	{{ group_count }} court group(s). It cannot be undone, and you will stop receiving alert emails
+	right away.</p>
+
+	<p><a href="{% url 'alerts' %}">You can also return to the alerts page without deleting anything.</a></p>
+
+	<form action="{% url 'delete_account' %}" method="post">{% csrf_token %}
+	<fieldset>
+		<div class="form-group">
+			{{ form.password.errors }}
+			{{ form.password.label_tag }}
+			{{ form.password }}
+		</div>
+		<div class="checkbox">
+			{{ form.confirm.errors }}
+			<label>{{ form.confirm }} I understand my account and alerts will be deleted and cannot be recovered.</label>
+		</div>
+		<button type="submit" value="Submit" class="btn btn-default">Delete my account</button>
+	</fieldset>
+	</form>
+</div> <!-- container -->
+{% endblock content %}

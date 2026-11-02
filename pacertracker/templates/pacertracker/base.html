@@ -37,6 +37,14 @@
         </h1>
 </div>
 
+{% if messages %}
+<div class="row"><div class="col-xs-12">
+	{% for message in messages %}
+		<div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>
+	{% endfor %}
+</div></div>
+{% endif %}
+
 {% block content %}{% endblock content %}
 </body>
 

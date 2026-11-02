@@ -1,0 +1,71 @@
+{% extends "pacertracker/base.html" %}
+
+{% block title %}PACER Tracker - Add users{% endblock %}
+
+{% block topbar-right %}
+        <p class="nav-btns pull-right">
+            <a class="btn btn-default" href="{% url 'alerts' %}"><small>Back to alerts</small></a>
+            {% if perms.auth.change_user %}<a class="btn btn-default" href="{% url 'manage_users' %}"><small>Manage users</small></a>{% endif %}
+            <a class="btn btn-default" href="{% url 'logout_view' %}"><small>Log out</small></a>
+        </p><div class="clearfix visible-xs"></div>
+{% endblock %}
+
+{% block content %}
+<div class="container" id="container-basic">
+	<h2>Add users</h2>
+
+	{% if no_domain %}
+		<p class="alert alert-danger">Your own account has no email address on it, so there is no
+		way to tell which accounts you are allowed to create. Ask an administrator to add your
+		email address to your account.</p>
+	{% else %}
+		{% if domain %}
+			<p class="alert alert-info"><strong>You can only create accounts ending in @{{ domain }}.</strong>
+			The email address is the user name, so it has to be the one the person actually reads.</p>
+		{% else %}
+			<p class="alert alert-info">You are an administrator, so you can create an account on any domain.</p>
+		{% endif %}
+
+		<p>Fill in as many of the three rows as you need and leave the rest blank. Each person gets an
+		email with a link to set their own password, so you never have to hand out one yourself.</p>
+
+		<form action="{% url 'add_user' %}" method="post">{% csrf_token %}
+		<fieldset>
+		{{ formset.management_form }}
+
+		{% for error in formset.non_form_errors %}
+			<p class="alert alert-danger">{{ error }}</p>
+		{% endfor %}
+
+		{% for form in formset %}
+			<div class="row">
+				<div class="col-sm-5">
+					<div class="form-group">
+						{{ form.email.errors }}
+						{{ form.email.label_tag }}
+						{{ form.email }}
+					</div>
+				</div>
+				<div class="col-sm-3">
+					<div class="form-group">
+						{{ form.first_name.errors }}
+						{{ form.first_name.label_tag }}
+						{{ form.first_name }}
+					</div>
+				</div>
+				<div class="col-sm-4">
+					<div class="form-group">
+						{{ form.last_name.errors }}
+						{{ form.last_name.label_tag }}
+						{{ form.last_name }}
+					</div>
+				</div>
+			</div>
+		{% endfor %}
+
+		<button type="submit" value="Submit" class="btn btn-default">Create accounts</button>
+		</fieldset>
+		</form>
+	{% endif %}
+</div> <!-- container -->
+{% endblock content %}

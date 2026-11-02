@@ -1,27 +1,36 @@
 # Create your views here.
+import logging
 import sys
 from django.core import serializers
 import simplejson
 
+from django.conf import settings
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect
 from django.templatetags.static import static
 from django.shortcuts import render, redirect
-from django.contrib import auth
-from django.contrib.auth.models import User
+from django.contrib import auth, messages
+from django.contrib.auth.models import User, Group
+from django.contrib.auth.views import PasswordResetConfirmView
 from django.forms.models import modelformset_factory
-from django.forms import CheckboxSelectMultiple
+from django.forms import formset_factory, CheckboxSelectMultiple
+from django.utils.crypto import get_random_string
 
 from haystack.query import SearchQuerySet
 from haystack.inputs import Clean
 
 from pacertracker.forms import PasswordReset, AlertForm, CourtSelectMultiple
+from pacertracker.forms import (REVOKED_GROUP, domain_for, NewUserForm,
+    BaseNewUserFormSet, AccountPasswordResetForm, ReactivatingSetPasswordForm,
+    DeleteAccountForm)
 from pacertracker.models import Alert, Court, CourtGroup, Case
 
+logger = logging.getLogger(__name__)
+
 def index(request):
-    #Prepare user list needed by login shortcut
-    user_list = User.objects.order_by('-last_name')
-    context = {'user_list': user_list}
-    return render(request, 'pacertracker/index.html', context)
+    return render(request, 'pacertracker/index.html')
     
 def logout_view(request):
     auth.logout(request)
@@ -142,3 +151,226 @@ def change_password(request):
     return render(request, 'pacertracker/change_password_form.html', {
                   'form': form
                   })
+
+
+def manageable_users(actor):
+    """The accounts this user is allowed to add to, switch off or re-invite.
+
+    Staff and superusers see everyone. A delegate sees only their own domain,
+    and never staff, superusers or themselves, so they can neither remove an
+    administrator nor lock themselves out.
+    """
+    domain = domain_for(actor)
+
+    if domain is None:
+        return User.objects.all().order_by('username')
+
+    if not domain:
+        return User.objects.none()
+
+    return (User.objects.filter(email__iendswith='@' + domain)
+                        .exclude(is_staff=True)
+                        .exclude(is_superuser=True)
+                        .exclude(pk=actor.pk)
+                        .order_by('username'))
+
+
+def send_invite(user, request):
+    """Send the welcome email, which is a password reset under the covers."""
+    form = AccountPasswordResetForm({'email': user.email})
+
+    if form.is_valid():
+        form.save(request=request,
+                  use_https=True,
+                  from_email=settings.DEFAULT_FROM_EMAIL,
+                  subject_template_name='pacertracker/new_account_subject.txt',
+                  html_email_template_name='pacertracker/new_account_email_body.html')
+
+
+def add_user(request):
+    if not request.user.is_authenticated:
+        return redirect('index')
+    if not request.user.has_perm('auth.add_user'):
+        raise PermissionDenied
+
+    domain = domain_for(request.user)
+
+    #A delegate with no email address of their own has no domain to work in.
+    if domain == '':
+        return render(request, 'pacertracker/user_add_form.html', {'no_domain': True})
+
+    NewUserFormSet = formset_factory(NewUserForm, formset=BaseNewUserFormSet, extra=3)
+
+    if request.method == 'POST':
+        formset = NewUserFormSet(request.POST, form_kwargs={'actor': request.user})
+
+        if formset.is_valid():
+            created = []
+
+            with transaction.atomic():
+                for form in formset:
+                    if not form.has_changed():
+                        continue
+
+                    email = form.cleaned_data['email']
+                    user = User(username=email,
+                                email=email,
+                                first_name=form.cleaned_data['first_name'],
+                                last_name=form.cleaned_data['last_name'],
+                                is_active=True,
+                                is_staff=False,
+                                is_superuser=False)
+                    #Nobody ever sees this password. New users set their own
+                    #through the link in the welcome email.
+                    user.set_password(get_random_string(50))
+                    user.save()
+
+                    created.append(user)
+                    logger.info('Account created: %s by %s',
+                                user.username, request.user.username)
+
+                #Only send once the whole batch is safely saved.
+                for user in created:
+                    transaction.on_commit(
+                        lambda user=user: send_invite(user, request))
+
+            if created:
+                messages.success(request, 'Created %s account(s): %s. '
+                    'Each person has been emailed a link to set their password.'
+                    % (len(created), ', '.join(u.username for u in created)))
+            else:
+                messages.error(request, 'Nothing to add. Fill in at least one row.')
+
+            return redirect('add_user')
+    else:
+        formset = NewUserFormSet(form_kwargs={'actor': request.user})
+
+    return render(request, 'pacertracker/user_add_form.html',
+                  {'formset': formset, 'domain': domain})
+
+
+def manage_users(request):
+    if not request.user.is_authenticated:
+        return redirect('index')
+    if not request.user.has_perm('auth.change_user'):
+        raise PermissionDenied
+
+    domain = domain_for(request.user)
+
+    if domain == '':
+        return render(request, 'pacertracker/user_manage.html', {'no_domain': True})
+
+    users = manageable_users(request.user)
+
+    if request.method == 'POST':
+        #Filtering the chosen ids back through the same queryset is what keeps
+        #a delegate from touching an account outside their domain.
+        targets = list(users.filter(pk__in=request.POST.getlist('users')))
+        action = request.POST.get('action')
+
+        if not targets:
+            messages.error(request, 'No accounts were selected.')
+        elif action == 'deactivate':
+            revoked = Group.objects.get_or_create(name=REVOKED_GROUP)[0]
+
+            for user in targets:
+                user.is_active = False
+                user.save(update_fields=['is_active'])
+                user.groups.add(revoked)
+                logger.info('Account deactivated: %s by %s',
+                            user.username, request.user.username)
+
+            messages.success(request, 'Switched off %s account(s): %s.'
+                % (len(targets), ', '.join(u.username for u in targets)))
+        elif action == 'reinvite':
+            revoked = Group.objects.get_or_create(name=REVOKED_GROUP)[0]
+
+            for user in targets:
+                user.is_active = True
+                user.set_password(get_random_string(50))
+                user.save()
+                #Has to come off the revoked list before the email is sent,
+                #or the reset form will skip them.
+                user.groups.remove(revoked)
+                send_invite(user, request)
+                logger.info('Account re-invited: %s by %s',
+                            user.username, request.user.username)
+
+            messages.success(request, 'Re-invited %s account(s): %s. '
+                'Each person has been emailed a link to set a new password.'
+                % (len(targets), ', '.join(u.username for u in targets)))
+        else:
+            messages.error(request, 'Choose what to do with the accounts you picked.')
+
+        query = request.GET.urlencode()
+        return redirect(request.path + ('?' + query if query else ''))
+
+    search = request.GET.get('q', '').strip()
+    #Active accounts are what you nearly always want to see, so they are the
+    #default. The switched off ones are one button away.
+    showing_off = request.GET.get('status') == 'off'
+
+    users = users.filter(is_active=not showing_off)
+
+    if search:
+        users = users.filter(Q(username__icontains=search)
+                             | Q(first_name__icontains=search)
+                             | Q(last_name__icontains=search))
+
+    return render(request, 'pacertracker/user_manage.html',
+                  {'accounts': users,
+                   'domain': domain,
+                   'search': search,
+                   'showing_off': showing_off,
+                   'query': request.GET.urlencode()})
+
+
+def delete_account(request):
+    if not request.user.is_authenticated:
+        return redirect('index')
+
+    #Administrators would lock themselves out of the admin site.
+    if request.user.is_staff or request.user.is_superuser:
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = DeleteAccountForm(request.user, request.POST)
+
+        if form.is_valid():
+            user = request.user
+            logger.info('Account deleted by its owner: %s (%s alerts, %s court groups)',
+                        user.username,
+                        Alert.objects.filter(user=user).count(),
+                        CourtGroup.objects.filter(user=user).count())
+
+            auth.logout(request)
+            user.delete()
+
+            messages.success(request, 'Your account has been deleted.')
+
+            return redirect('index')
+    else:
+        form = DeleteAccountForm(request.user)
+
+    return render(request, 'pacertracker/account_delete_form.html',
+                  {'form': form,
+                   'alert_count': Alert.objects.filter(user=request.user).count(),
+                   'group_count': CourtGroup.objects.filter(user=request.user).count()})
+
+
+class AccountPasswordResetConfirmView(PasswordResetConfirmView):
+    """Reset links work for lapsed accounts, but never for revoked ones.
+
+    Switching an account off does not change the password or the last login,
+    so a link mailed out before that still validates for its full three days.
+    Checking here closes that window.
+    """
+    form_class = ReactivatingSetPasswordForm
+
+    def get_user(self, uidb64):
+        user = super(AccountPasswordResetConfirmView, self).get_user(uidb64)
+
+        if user is not None and user.groups.filter(name=REVOKED_GROUP).exists():
+            return None
+
+        return user

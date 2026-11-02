@@ -1,0 +1,76 @@
+{% extends "pacertracker/base.html" %}
+
+{% block title %}PACER Tracker - Manage users{% endblock %}
+
+{% block topbar-right %}
+        <p class="nav-btns pull-right">
+            <a class="btn btn-default" href="{% url 'alerts' %}"><small>Back to alerts</small></a>
+            {% if perms.auth.add_user %}<a class="btn btn-default" href="{% url 'add_user' %}"><small>Add users</small></a>{% endif %}
+            <a class="btn btn-default" href="{% url 'logout_view' %}"><small>Log out</small></a>
+        </p><div class="clearfix visible-xs"></div>
+{% endblock %}
+
+{% block content %}
+<div class="container" id="container-basic">
+	<h2>{% if showing_off %}Switched off accounts{% else %}Active accounts{% endif %}</h2>
+
+	{% if no_domain %}
+		<p class="alert alert-danger">Your own account has no email address on it, so there is no
+		way to tell which accounts you are allowed to manage. Ask an administrator to add your
+		email address to your account.</p>
+	{% else %}
+		{% if domain %}
+			<p class="alert alert-info"><strong>You can only manage accounts ending in @{{ domain }}.</strong>
+			Administrator accounts and your own account are not listed.</p>
+		{% else %}
+			<p class="alert alert-info">You are an administrator, so every account is listed.</p>
+		{% endif %}
+
+		{% if showing_off %}
+			<p>These accounts have been switched off. They cannot log in, they receive no alerts, and
+			they cannot bring themselves back with the &ldquo;Forgot password&rdquo; link.
+			<strong>Re-invite</strong> switches an account back on and emails a fresh link to set a password.</p>
+			<p><a class="btn btn-default" href="{% url 'manage_users' %}{% if search %}?q={{ search }}{% endif %}">View active accounts</a></p>
+		{% else %}
+			<p>These accounts can log in and receive alerts. <strong>Switch off</strong> removes
+			someone&rsquo;s access and stops their alerts right away.</p>
+			<p><a class="btn btn-default" href="{% url 'manage_users' %}?status=off{% if search %}&amp;q={{ search }}{% endif %}">View switched off accounts</a></p>
+		{% endif %}
+
+		<form action="{% url 'manage_users' %}" method="get">
+			{% if showing_off %}<input type="hidden" name="status" value="off">{% endif %}
+			<div class="form-group">
+				<input type="text" class="form-control" name="q" value="{{ search }}" placeholder="Search by name or email address">
+			</div>
+			<button type="submit" class="btn btn-default">Search</button>
+			{% if search %}<a class="btn btn-default" href="{% url 'manage_users' %}{% if showing_off %}?status=off{% endif %}">Show all</a>{% endif %}
+		</form>
+
+		<form action="{% url 'manage_users' %}{% if query %}?{{ query }}{% endif %}" method="post">{% csrf_token %}
+		<fieldset>
+			<table class="table">
+				<tr>
+					<th></th><th>Email address</th><th>Name</th><th>Last log in</th>
+				</tr>
+				{% for account in accounts %}
+				<tr>
+					<td><input type="checkbox" name="users" value="{{ account.pk }}" id="user_{{ account.pk }}"></td>
+					<td><label for="user_{{ account.pk }}">{{ account.username }}</label></td>
+					<td>{{ account.first_name }} {{ account.last_name }}</td>
+					<td>{% if account.last_login %}{{ account.last_login|date:"M j, Y" }}{% else %}Never{% endif %}</td>
+				</tr>
+				{% empty %}
+				<tr><td colspan="4">No {% if showing_off %}switched off{% else %}active{% endif %} accounts found.</td></tr>
+				{% endfor %}
+			</table>
+
+			{% if showing_off %}
+				<button type="submit" name="action" value="reinvite" class="btn btn-default">Re-invite selected</button>
+			{% else %}
+				<button type="submit" name="action" value="deactivate" class="btn btn-default">Switch off selected</button>
+			{% endif %}
+		</fieldset>
+		</form>
+	{% endif %}
+</div> <!-- container -->
+{% endblock content %}

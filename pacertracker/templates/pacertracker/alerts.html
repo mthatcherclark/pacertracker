@@ -12,6 +12,9 @@
         <p class="nav-btns pull-right">
             <a class="btn btn-default" href="{% url 'groups' %}"><small>Modify court groups</small></a>
             <a class="btn btn-default" href="{% url 'change_password' %}"><small>Change password</small></a>
+            {% if perms.auth.add_user %}<a class="btn btn-default" href="{% url 'add_user' %}"><small>Add users</small></a>{% endif %}
+            {% if perms.auth.change_user %}<a class="btn btn-default" href="{% url 'manage_users' %}"><small>Manage users</small></a>{% endif %}
+            {% if not user.is_staff %}<a class="btn btn-default" href="{% url 'delete_account' %}"><small class="text-danger">Delete my account</small></a>{% endif %}
             <a class="btn btn-default" href="{% url 'logout_view' %}"><small>Log out</small></a>
         </p><div class="clearfix visible-xs"></div>
 {% endblock %}
