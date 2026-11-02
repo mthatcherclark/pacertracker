@@ -262,7 +262,9 @@ class Command(BaseCommand):
             r = upload(settings.IA_IDENTIFIER, 
                        files=[courts_zipname, cases_zipname] + entries_zipnames, 
                        access_key=settings.IA_ACCESS_KEY, 
-                       secret_key=settings.IA_SECRET_KEY)
+                       secret_key=settings.IA_SECRET_KEY,
+                       # Retry on 503 Slow Down (archive.org S3 overloaded) instead of aborting the run
+                       retries=10, retries_sleep=120)
             r[0].status_code
 
         # Log stuff
