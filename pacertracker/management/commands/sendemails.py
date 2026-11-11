@@ -2,6 +2,7 @@ import datetime
 import operator
 import logging
 
+import smtplib
 from time import sleep
 from collections import OrderedDict
 from html2text import html2text
@@ -141,24 +142,41 @@ class Command(BaseCommand):
                 email.attach_alternative(html_content, "text/html") #Send both text and html emails
                 messages.append(email)
 
+        sent = True
         if not(options['nosend']):
-            try:
-                connection = mail.get_connection() # Use default email connection
-                connection.send_messages(messages)
-                connection.close()
-            except: #various smtplib errors
-                sleep(5)
-                connection = mail.get_connection() # Use default email connection
-                connection.send_messages(messages)
-                connection.close()
-            
+            # The SMTP service occasionally refuses logins for a while (e.g.
+            # Apple: "454 4.7.0 auth service unavailable"). Retry briefly, then
+            # give up quietly: last_checked is left alone, so the next run
+            # rebuilds and resends these same alerts. Crashing here only
+            # produced a traceback email from cron every minute.
+            attempts = 5 if options['daily'] else 2
+            retry_wait = 60 if options['daily'] else 5
+            for attempt in range(1, attempts + 1):
+                if not messages:
+                    break
+                try:
+                    connection = mail.get_connection() # Use default email connection
+                    connection.send_messages(messages)
+                    connection.close()
+                    break
+                except (smtplib.SMTPException, OSError) as e:
+                    if attempt < attempts:
+                        sleep(retry_wait)
+                        continue
+                    sent = False
+                    logger.warning('WARNING - %s - %s sendemails could not send %s email(s) after %s attempt(s): %s: %s. Alerts left unchecked; will retry next run.' % (
+                                   datetime.datetime.utcnow().replace(tzinfo=utc),
+                                   'Daily' if options['daily'] else 'Live',
+                                   len(messages), attempts, type(e).__name__, e))
+
+        if not(options['nosend']) and sent:
             for alert in Alert.objects.filter(id__in=alert_ids):
                 alert.last_checked = alert_times['%s' % alert.id]
                 alert.save(update_fields=['last_checked'])
                 #OVERIDING THE ABOVE FOR TESTING PURPOSES 2/2
                 #alert.last_checked = datetime.datetime(2015,1,12).replace(tzinfo=utc)
                 #alert.save(update_fields=['last_checked'])
-        else:
+        elif options['nosend']:
             print('DID NOT SEND EMAILS OR UPDATE ALERTS!')
 
         time_elapsed = datetime.datetime.utcnow().replace(tzinfo=utc) - time_started
@@ -172,7 +190,7 @@ class Command(BaseCommand):
         final_msg = (final_msg % (time_started,
                                   'Daily' if options['daily'] else 'Live',
                                   time_elapsed[1] + ' minutes and ' + time_elapsed[2] + ' second(s)',
-                                  str(len(messages)),
+                                  str(len(messages)) if sent else '0 (%s deferred)' % len(messages),
                                   recipients if recipients else 'no one'))
         logger.info(final_msg)
                                   
