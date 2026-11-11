@@ -28,6 +28,15 @@ from pacertracker.search_indexes import CaseIndex
 utc = datetime.timezone.utc
 logger = logging.getLogger(__name__)
 
+# Field limits used to reject corrupt feed items before they reach the
+# database. Courts occasionally serve binary garbage in place of a feed
+# (Kansas District, 2026-11-10); a garbage title with no space became a
+# 50+ character "case number" and the DataError killed every run for an
+# hour. For reference, the longest real case number in 16.8M cases is 38.
+CASE_NUMBER_MAX = Case._meta.get_field('number').max_length
+CASE_TITLE_MAX = Case._meta.get_field('title').max_length
+ENTRY_DESCRIPTION_MAX = Entry._meta.get_field('description').max_length
+
 def requests_retry_session(
     retries=2,
     backoff_factor=0.1,
@@ -442,6 +451,21 @@ class Command(BaseCommand):
                     total_entries_broken += 1
                     continue
                     
+                #Reject corrupt feed items: a real case number contains a
+                #digit and fits its field, and so does the title.
+                if (len(case_number) > CASE_NUMBER_MAX or len(title) > CASE_TITLE_MAX
+                        or not any(ch.isdigit() for ch in case_number)):
+                    error_msg = 'ERROR - %s - Trackcases entry not saved due to bad case number or title (%s and %s chars). - %s - %s'
+                    error_msg = (error_msg % (time_started,
+                                 len(case_number), len(title),
+                                 court.get_type_display() + ': ' + court.name,
+                                 entry
+                                 ))
+                    logger.error(error_msg)
+
+                    total_entries_broken += 1
+                    continue
+
                 #Get case type
                 try:
                     type = get_case_type(case_number, court)
@@ -464,6 +488,18 @@ class Command(BaseCommand):
                 except (AttributeError, KeyError):
                     error_msg = 'ERROR - %s - Trackcases entry not saved due to problem with description, doc number or doc url. - %s - %s'
                     error_msg = (error_msg % (time_started,
+                                 court.get_type_display() + ': ' + court.name,
+                                 entry
+                                 ))
+                    logger.error(error_msg)
+
+                    total_entries_broken += 1
+                    continue
+
+                if len(description) > ENTRY_DESCRIPTION_MAX:
+                    error_msg = 'ERROR - %s - Trackcases entry not saved due to over-long description (%s chars). - %s - %s'
+                    error_msg = (error_msg % (time_started,
+                                 len(description),
                                  court.get_type_display() + ': ' + court.name,
                                  entry
                                  ))
