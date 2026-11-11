@@ -32,7 +32,13 @@ logger = logging.getLogger(__name__)
 # database. Courts occasionally serve binary garbage in place of a feed
 # (Kansas District, 2026-11-10); a garbage title with no space became a
 # 50+ character "case number" and the DataError killed every run for an
-# hour. For reference, the longest real case number in 16.8M cases is 38.
+# hour. Shorter garbage has also slipped through and been stored. Formats
+# vary too much for a strict pattern (1:24-cv-01234-ABC, L:26-po-00956-1,
+# 1-26-12561-cjf, 25-10001), but every real number has two consecutive
+# digits and a dash or colon; of 16.8M stored cases only 22 junk rows
+# fail that. The longest real case number is 25 characters.
+CASE_NUMBER_SHAPE = re.compile(r'[0-9]{2}')
+CASE_NUMBER_SEPARATOR = re.compile(r'[-:]')
 CASE_NUMBER_MAX = Case._meta.get_field('number').max_length
 CASE_TITLE_MAX = Case._meta.get_field('title').max_length
 ENTRY_DESCRIPTION_MAX = Entry._meta.get_field('description').max_length
@@ -451,10 +457,12 @@ class Command(BaseCommand):
                     total_entries_broken += 1
                     continue
                     
-                #Reject corrupt feed items: a real case number contains a
-                #digit and fits its field, and so does the title.
+                #Reject corrupt feed items: a real case number has two
+                #consecutive digits and a dash or colon, and fits its
+                #field, and so does the title.
                 if (len(case_number) > CASE_NUMBER_MAX or len(title) > CASE_TITLE_MAX
-                        or not any(ch.isdigit() for ch in case_number)):
+                        or not CASE_NUMBER_SHAPE.search(case_number)
+                        or not CASE_NUMBER_SEPARATOR.search(case_number)):
                     error_msg = 'ERROR - %s - Trackcases entry not saved due to bad case number or title (%s and %s chars). - %s - %s'
                     error_msg = (error_msg % (time_started,
                                  len(case_number), len(title),
